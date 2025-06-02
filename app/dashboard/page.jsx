@@ -2,7 +2,8 @@ import ProtectedRoute from "@/components/ProtectedRoute"
 import Navigation from "@/components/Navigation"
 import DeviceCard from "@/components/DeviceCard"
 import { createClient } from "@/utils/supabase/server"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import Link from "next/link"
 
 async function getDashboardData() {
   const supabase = createClient()
@@ -28,12 +29,88 @@ async function getDashboardData() {
 
   return { shops, devices, user }
 }
+import { Button } from "@/components/ui/button"
 
 export default async function DashboardPage() {
   const data = await getDashboardData()
 
   if (!data) {
-    return <div>Loading...</div>
+    return <>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+        <div className="container mx-auto px-4 py-16">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
+              VendorFlow
+            </h1>
+            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+              Manage your IoT devices, vending machines, relay controllers, and water pumps all in one place with
+              real-time MQTT integration.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/login">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                >
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/signup">
+                <Button size="lg" variant="outline">
+                  Create Account
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-blue-600">Shop Management</CardTitle>
+                <CardDescription>
+                  Organize and manage multiple shop locations with their vending machines
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm text-gray-600 space-y-2">
+                  <li>• Multiple shop locations</li>
+                  <li>• Vending machine tracking</li>
+                  <li>• Liquid level monitoring</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-purple-600">Smart Home Control</CardTitle>
+                <CardDescription>Control relay devices and IoT equipment remotely via MQTT</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm text-gray-600 space-y-2">
+                  <li>• Relay channel control</li>
+                  <li>• Custom switch types</li>
+                  <li>• Real-time status updates</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-green-600">Water Pump Systems</CardTitle>
+                <CardDescription>Monitor and control water pump operations with balance tracking</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm text-gray-600 space-y-2">
+                  <li>• Pump start/stop control</li>
+                  <li>• Water balance monitoring</li>
+                  <li>• Remote control of water pumps</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </>
   }
 
   const { shops, devices } = data
