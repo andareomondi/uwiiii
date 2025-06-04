@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
+  const [error, setError] = useState("")
   const router = useRouter()
   const supabase = createClient()
 
@@ -26,7 +27,7 @@ export default function LoginPage() {
           password,
         })
         if (error) throw error
-        alert("Check your email for the confirmation link!")
+        setError("Check your email for confirmation link")
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -36,21 +37,24 @@ export default function LoginPage() {
         router.push("/dashboard")
       }
     } catch (error) {
-      alert(error.message)
+      setError(error.message)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4">
+      <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-gray-900">VendorFlow</CardTitle>
           <CardDescription>{isSignUp ? "Create your account" : "Sign in to your account"}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAuth} className="space-y-4">
+          {error && (
+              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">{error}</div>
+            )}
             <div>
               <Input
                 type="email"
