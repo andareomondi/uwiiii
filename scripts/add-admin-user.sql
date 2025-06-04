@@ -1,5 +1,4 @@
 -- Script to make your current user an admin
--- Replace 'your-email@example.com' with your actual email
 
 UPDATE auth.users
 SET raw_user_meta_data = '{"role": "admin"}'

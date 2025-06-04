@@ -74,11 +74,11 @@ CREATE INDEX IF NOT EXISTS idx_relay_channels_device ON relay_channels(device_id
 CREATE INDEX IF NOT EXISTS idx_mqtt_messages_device ON mqtt_messages(device_id);
 CREATE INDEX IF NOT EXISTS idx_mqtt_messages_timestamp ON mqtt_messages(timestamp);
 
--- Enable Row Level Security
-ALTER TABLE shops ENABLE ROW LEVEL SECURITY;
-ALTER TABLE devices ENABLE ROW LEVEL SECURITY;
-ALTER TABLE relay_channels ENABLE ROW LEVEL SECURITY;
-ALTER TABLE mqtt_messages ENABLE ROW LEVEL SECURITY;
+-- Disable Row Level Security
+ALTER TABLE shops DISABLE ROW LEVEL SECURITY;
+ALTER TABLE devices DISABLE ROW LEVEL SECURITY;
+ALTER TABLE relay_channels DISABLE ROW LEVEL SECURITY;
+ALTER TABLE mqtt_messages DISABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for shops
 DROP POLICY IF EXISTS "Users can view their own shops" ON shops;
