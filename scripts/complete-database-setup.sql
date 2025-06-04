@@ -178,8 +178,12 @@ RETURNS TRIGGER AS $$
 BEGIN
   -- Only create channels for relay devices
   IF NEW.device_type = 'relay_device' THEN
-    -- Create 4 output channels (most common setup)
-    FOR i IN 1..4 LOOP
+    -- Create 8 output channels (most common setup)
+    FOR i IN 1..8 LOOP
+      INSERT INTO relay_channels (device_id, channel_number, channel_type, display_name, gui_switch_type)
+      VALUES (NEW.id, i, 'input', 'IN_' || i, 'light');
+    END LOOP;
+    FOR i IN 1..8 LOOP
       INSERT INTO relay_channels (device_id, channel_number, channel_type, display_name, gui_switch_type)
       VALUES (NEW.id, i, 'output', 'OUT_' || i, 'light');
     END LOOP;
