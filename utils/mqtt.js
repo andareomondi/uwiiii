@@ -1,3 +1,6 @@
+// This function publishes to the route /api/mqtt/publish but this isn't what is going to apply to the actual real life scenario. We have to refactor this code to actually publish to the broker url that we have been given by the client.
+// Same to the subscribeToMQTTMessages function
+
 export const publishMQTTMessage = async (topic, message) => {
   try {
     const response = await fetch("/api/mqtt/publish", {

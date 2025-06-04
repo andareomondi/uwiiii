@@ -1,4 +1,5 @@
 // This is just mirroring what the mqtt system does, So just replace this with actual mqtt setup. By firstly installing the mqtt package and setting up everything
+// It's getting the json packets from the @/utils/mqtt.js which is not ideal
 import { NextResponse } from "next/server"
 
 export async function POST(request) {
