@@ -1,3 +1,4 @@
+// This is just mirroring what the mqtt system does, So just replace this with actual mqtt setup. By firstly installing the mqtt package and setting up everything
 import { NextResponse } from "next/server"
 
 export async function POST(request) {
