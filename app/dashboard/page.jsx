@@ -4,6 +4,7 @@ import DeviceCard from "@/components/DeviceCard"
 import { createClient } from "@/utils/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 async function getDashboardData() {
   const supabase = createClient()
@@ -16,13 +17,17 @@ async function getDashboardData() {
     if (!user) return null
 
     // Get user's shops
-    const { data: shops, error: shopsError } = await supabase.from("shops").select("*").eq("owner", user.id)
+    const { data: shops, error: shopsError } = await supabase
+      .from("shops")
+      .select("*")
+      .eq("owner", user.id)
+      .order("created_at", { ascending: false })
 
     if (shopsError) {
       console.error("Error fetching shops:", shopsError)
     }
 
-    // Get user's devices
+    // Get user's devices with better error handling
     let devices = []
     try {
       const { data: devicesData, error: devicesError } = await supabase
@@ -33,19 +38,21 @@ async function getDashboardData() {
         `)
         .eq("owner", user.id)
         .eq("is_active", true)
+        .order("created_at", { ascending: false })
 
       if (devicesError) {
-        console.error("Error fetching devices with relations:", devicesError)
-
-        // Try without relations
+        console.log("Fetching devices without relations...")
+        // Fallback: fetch devices without relations
         const { data: simpleDevices, error: simpleError } = await supabase
           .from("devices")
           .select("*")
           .eq("owner", user.id)
           .eq("is_active", true)
+          .order("created_at", { ascending: false })
 
         if (simpleError) {
           console.error("Error fetching devices:", simpleError)
+          devices = []
         } else {
           devices = simpleDevices?.map((device) => ({ ...device, relay_channels: [] })) || []
         }
@@ -60,110 +67,89 @@ async function getDashboardData() {
     return { shops: shops || [], devices, user }
   } catch (error) {
     console.error("Error in getDashboardData:", error)
-    return null
+    return { shops: [], devices: [], user: null }
   }
 }
-
-import { Button } from "@/components/ui/button"
 
 export default async function DashboardPage() {
   const data = await getDashboardData()
 
-  if (!data) {
+  if (!data || !data.user) {
     return (
-      <>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-          <div className="container mx-auto px-4 py-16">
-            <div className="text-center mb-12">
-              <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
-                VendorFlow
-              </h1>
-              <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-                Manage your IoT devices, vending machines, relay controllers, and water pumps all in one place with
-                real-time MQTT integration.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/login">
-                  <Button
-                    size="lg"
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/login">
-                  <Button size="lg" variant="outline">
-                    Create Account
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-blue-600">Shop Management</CardTitle>
-                  <CardDescription>
-                    Organize and manage multiple shop locations with their vending machines
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="text-sm text-gray-600 space-y-2">
-                    <li>• Multiple shop locations</li>
-                    <li>• Vending machine tracking</li>
-                    <li>• Liquid level monitoring</li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-purple-600">Smart Home Control</CardTitle>
-                  <CardDescription>Control relay devices and IoT equipment remotely via MQTT</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="text-sm text-gray-600 space-y-2">
-                    <li>• Relay channel control</li>
-                    <li>• Custom switch types</li>
-                    <li>• Real-time status updates</li>
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-green-600">Water Pump Systems</CardTitle>
-                  <CardDescription>Monitor and control water pump operations with balance tracking</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="text-sm text-gray-600 space-y-2">
-                    <li>• Pump start/stop control</li>
-                    <li>• Water balance monitoring</li>
-                    <li>• Remote control of water pumps</li>
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="mt-16 text-center">
-              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg max-w-2xl mx-auto">
-                <CardContent className="p-8">
-                  <h3 className="text-xl font-semibold mb-4">Database Setup Required</h3>
-                  <p className="text-gray-600 mb-4">
-                    It looks like your database tables haven't been created yet. Please run the database setup script in
-                    your Supabase SQL editor.
-                  </p>
-                  <Button asChild>
-                    <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer">
-                      Open Supabase Dashboard
-                    </a>
-                  </Button>
-                </CardContent>
-              </Card>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+        <div className="container mx-auto px-4 py-16">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
+              VendorFlow
+            </h1>
+            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+              Manage your IoT devices, vending machines, relay controllers, and water pumps all in one place with
+              real-time MQTT integration.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/login">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                >
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button size="lg" variant="outline">
+                  Create Account
+                </Button>
+              </Link>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-blue-600">Shop Management</CardTitle>
+                <CardDescription>
+                  Organize and manage multiple shop locations with their vending machines
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm text-gray-600 space-y-2">
+                  <li>• Multiple shop locations</li>
+                  <li>• Vending machine tracking</li>
+                  <li>• Liquid level monitoring</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-purple-600">Smart Home Control</CardTitle>
+                <CardDescription>Control relay devices and IoT equipment remotely via MQTT</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm text-gray-600 space-y-2">
+                  <li>• Relay channel control</li>
+                  <li>• Custom switch types</li>
+                  <li>• Real-time status updates</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-green-600">Water Pump Systems</CardTitle>
+                <CardDescription>Monitor and control water pump operations with balance tracking</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm text-gray-600 space-y-2">
+                  <li>• Pump start/stop control</li>
+                  <li>• Water balance monitoring</li>
+                  <li>• Remote control of water pumps</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </>
+      </div>
     )
   }
 
@@ -210,9 +196,14 @@ export default async function DashboardPage() {
 
           {devices && devices.length > 0 ? (
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Recent Devices</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-900">Your Devices</h2>
+                <Button asChild>
+                  <Link href="/marketplace">Add More Devices</Link>
+                </Button>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {devices.slice(0, 6).map((device) => (
+                {devices.map((device) => (
                   <DeviceCard key={device.id} device={device} />
                 ))}
               </div>
