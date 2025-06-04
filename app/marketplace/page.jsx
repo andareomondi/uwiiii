@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
 
 export default function MarketplacePage() {
   const [devices, setDevices] = useState([])
@@ -16,6 +17,7 @@ export default function MarketplacePage() {
   const supabase = createClient()
   const [userShops, setUserShops] = useState([])
   const [selectedShop, setSelectedShop] = useState(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     fetchAvailableDevices()
@@ -24,17 +26,23 @@ export default function MarketplacePage() {
 
   const fetchAvailableDevices = async () => {
     try {
-      const { data } = await supabase.from("devices").select("*").eq("is_active", false).is("owner", null)
+      const { data, error } = await supabase.from("devices").select("*").eq("is_active", false).is("owner", null)
 
+      if (error) throw error
       setDevices(data || [])
     } catch (error) {
       console.error("Error fetching devices:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch available devices.",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
   }
 
-  const handleAcquireDevice = async (deviceId, shopId = null) => {
+  const handleAcquireDevice = async (deviceId, deviceName, shopId = null) => {
     try {
       const {
         data: { user },
@@ -55,11 +63,20 @@ export default function MarketplacePage() {
 
       if (error) throw error
 
-      alert("Device acquired successfully!")
+      toast({
+        title: "Success",
+        description: `Device "${deviceName}" acquired successfully!`,
+        variant: "success",
+      })
+
       fetchAvailableDevices()
     } catch (error) {
       console.error("Error acquiring device:", error)
-      alert("Failed to acquire device")
+      toast({
+        title: "Error",
+        description: "Failed to acquire device. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -75,6 +92,11 @@ export default function MarketplacePage() {
       setUserShops(data || [])
     } catch (error) {
       console.error("Error fetching user shops:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch your shops.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -177,8 +199,8 @@ export default function MarketplacePage() {
                       className="w-full"
                       onClick={() =>
                         device.device_type === "vending_machine"
-                          ? handleAcquireDevice(device.id, selectedShop)
-                          : handleAcquireDevice(device.id)
+                          ? handleAcquireDevice(device.id, device.name, selectedShop)
+                          : handleAcquireDevice(device.id, device.name)
                       }
                     >
                       Acquire Device

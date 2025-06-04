@@ -1,12 +1,14 @@
 import { Inter } from "next/font/google"
 import "./globals.css"
 import MQTTProcessor from "@/components/MQTTProcessor"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
   title: "VendorFlow",
   description: "Manage your IoT devices with MQTT integration",
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({ children }) {
@@ -15,6 +17,7 @@ export default function RootLayout({ children }) {
       <body className={inter.className}>
         {children}
         <MQTTProcessor />
+        <Toaster />
       </body>
     </html>
   )

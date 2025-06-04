@@ -12,12 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Settings, Trash2 } from "lucide-react"
+import { useUserRole } from "@/hooks/use-user-role"
+import { useToast } from "@/hooks/use-toast"
 
 export default function AdminPage() {
   const [devices, setDevices] = useState([])
   const [loading, setLoading] = useState(true)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(false)
   const [newDevice, setNewDevice] = useState({
     device_id: "",
     name: "",
@@ -27,51 +28,52 @@ export default function AdminPage() {
     max_capacity: 5000,
   })
   const supabase = createClient()
+  const { isAdmin, loading: roleLoading } = useUserRole()
+  const { toast } = useToast()
 
   useEffect(() => {
-    checkAdminStatus()
-  }, [])
-
-  useEffect(() => {
-    if (isAdmin) {
+    if (!roleLoading && isAdmin) {
       fetchAllDevices()
-    }
-  }, [isAdmin])
-
-  const checkAdminStatus = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
-
-      // Check if user has admin role in metadata
-      const isUserAdmin = user.user_metadata?.role === "admin"
-      setIsAdmin(isUserAdmin)
-
-      if (!isUserAdmin) {
-        alert("Access denied. Admin privileges required.")
-      }
-    } catch (error) {
-      console.error("Error checking admin status:", error)
-    } finally {
+    } else if (!roleLoading && !isAdmin) {
       setLoading(false)
     }
-  }
+  }, [isAdmin, roleLoading])
 
   const fetchAllDevices = async () => {
     try {
-      const { data } = await supabase
-        .from("devices")
-        .select(`
-          *,
-          relay_channels (*)
-        `)
-        .order("created_at", { ascending: false })
+      // Try to fetch devices with relay_channels
+      let devicesData
+      try {
+        const { data, error } = await supabase
+          .from("devices")
+          .select(`
+            *,
+            relay_channels (*)
+          `)
+          .order("created_at", { ascending: false })
 
-      setDevices(data || [])
+        if (error) throw error
+        devicesData = data
+      } catch (relationError) {
+        console.log("Fetching devices without relations:", relationError)
+
+        // Fallback: fetch devices without relations
+        const { data, error } = await supabase.from("devices").select("*").order("created_at", { ascending: false })
+
+        if (error) throw error
+        devicesData = data?.map((device) => ({ ...device, relay_channels: [] })) || []
+      }
+
+      setDevices(devicesData || [])
     } catch (error) {
       console.error("Error fetching devices:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch devices. Please check if the database tables exist.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -87,17 +89,40 @@ export default function AdminPage() {
         status: "offline",
       }
 
+      // Add device type specific fields
       if (newDevice.device_type === "vending_machine") {
+        if (!newDevice.liquid_type) {
+          toast({
+            title: "Validation Error",
+            description: "Please select a liquid type for vending machines.",
+            variant: "destructive",
+          })
+          return
+        }
         deviceData.liquid_type = newDevice.liquid_type
-        deviceData.max_capacity = Number.parseInt(newDevice.max_capacity)
+        deviceData.max_capacity = Number.parseInt(newDevice.max_capacity) || 5000
         deviceData.current_level = 0
+      } else if (newDevice.device_type === "water_pump") {
+        deviceData.state = "off"
+        deviceData.balance = 0
       }
 
       const { data, error } = await supabase.from("devices").insert([deviceData]).select()
 
       if (error) throw error
 
-      setDevices([data[0], ...devices])
+      if (!data || data.length === 0) {
+        throw new Error("No data returned from database")
+      }
+
+      // Add relay_channels property for consistency
+      const newDeviceWithChannels = {
+        ...data[0],
+        relay_channels: [],
+      }
+
+      setDevices([newDeviceWithChannels, ...devices])
+
       setNewDevice({
         device_id: "",
         name: "",
@@ -107,30 +132,46 @@ export default function AdminPage() {
         max_capacity: 5000,
       })
       setIsCreateDialogOpen(false)
-      alert("Device created successfully!")
+
+      toast({
+        title: "Success",
+        description: "Device created successfully!",
+        variant: "success",
+      })
     } catch (error) {
       console.error("Error creating device:", error)
-      alert("Failed to create device: " + error.message)
+      toast({
+        title: "Error",
+        description: `Failed to create device: ${error.message}`,
+        variant: "destructive",
+      })
     }
   }
 
-  const handleDeleteDevice = async (deviceId) => {
-    if (!confirm("Are you sure you want to delete this device?")) return
-
+  const handleDeleteDevice = async (deviceId, deviceName) => {
     try {
       const { error } = await supabase.from("devices").delete().eq("id", deviceId)
 
       if (error) throw error
 
       setDevices(devices.filter((d) => d.id !== deviceId))
-      alert("Device deleted successfully!")
+
+      toast({
+        title: "Success",
+        description: `Device "${deviceName}" deleted successfully!`,
+        variant: "success",
+      })
     } catch (error) {
       console.error("Error deleting device:", error)
-      alert("Failed to delete device")
+      toast({
+        title: "Error",
+        description: "Failed to delete device. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
-  if (loading) {
+  if (roleLoading || loading) {
     return (
       <ProtectedRoute>
         <div className="min-h-screen bg-gray-50">
@@ -207,6 +248,7 @@ export default function AdminPage() {
                     <Select
                       value={newDevice.device_type}
                       onValueChange={(value) => setNewDevice({ ...newDevice, device_type: value })}
+                      required
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select device type" />
@@ -225,6 +267,7 @@ export default function AdminPage() {
                         <Select
                           value={newDevice.liquid_type}
                           onValueChange={(value) => setNewDevice({ ...newDevice, liquid_type: value })}
+                          required
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select liquid type" />
@@ -300,15 +343,29 @@ export default function AdminPage() {
                         <span>{device.owner ? "Assigned" : "Unassigned"}</span>
                       </div>
                       {device.device_type === "vending_machine" && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Liquid:</span>
-                          <span>{device.liquid_type}</span>
-                        </div>
+                        <>
+                          {device.liquid_type && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Liquid:</span>
+                              <span>{device.liquid_type}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Level:</span>
+                            <span>{device.current_level || 0}ml</span>
+                          </div>
+                        </>
                       )}
                       {device.device_type === "relay_device" && (
                         <div className="flex justify-between">
                           <span className="text-gray-600">Channels:</span>
                           <span>{device.relay_channels?.length || 0}</span>
+                        </div>
+                      )}
+                      {device.device_type === "water_pump" && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Balance:</span>
+                          <span>{device.balance || 0}L</span>
                         </div>
                       )}
                     </div>
@@ -318,7 +375,11 @@ export default function AdminPage() {
                         <Settings size={14} className="mr-1" />
                         Edit
                       </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDeleteDevice(device.id)}>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDeleteDevice(device.id, device.name)}
+                      >
                         <Trash2 size={14} />
                       </Button>
                     </div>
