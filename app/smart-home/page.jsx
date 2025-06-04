@@ -5,23 +5,14 @@ import ProtectedRoute from "@/components/ProtectedRoute"
 import Navigation from "@/components/Navigation"
 import DeviceCard from "@/components/DeviceCard"
 import { createClient } from "@/utils/supabase/client"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 
 export default function SmartHomePage() {
   const [devices, setDevices] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selectedRoom, setSelectedRoom] = useState("Living Room")
   const supabase = createClient()
-
-  const rooms = ["Living Room", "Kitchen", "Bedroom", "Bathroom"]
-  const scenes = [
-    { name: "Awakening", icon: "☀️" },
-    { name: "Night", icon: "🌙" },
-    { name: "Calm", icon: "🧘" },
-    { name: "Energetic", icon: "⚡" },
-  ]
 
   useEffect(() => {
     fetchDevices()
@@ -81,42 +72,6 @@ export default function SmartHomePage() {
               <span className="text-xl font-semibold">25°C</span>
             </div>
           </div>
-
-          {/* Room Tabs */}
-          <div className="flex gap-2 mb-6 overflow-x-auto">
-            {rooms.map((room) => (
-              <Button
-                key={room}
-                variant={selectedRoom === room ? "default" : "outline"}
-                onClick={() => setSelectedRoom(room)}
-                className="whitespace-nowrap"
-              >
-                {room}
-              </Button>
-            ))}
-          </div>
-
-          {/* Scenes */}
-          <Card className="mb-6 bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg">Scenes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {scenes.map((scene) => (
-                  <Button
-                    key={scene.name}
-                    variant="outline"
-                    className="h-20 flex flex-col items-center gap-2 bg-white/50 hover:bg-white/80"
-                  >
-                    <span className="text-2xl">{scene.icon}</span>
-                    <span className="text-sm">{scene.name}</span>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Device Count */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-900">{devices.length} devices</h2>
