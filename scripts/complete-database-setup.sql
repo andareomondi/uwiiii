@@ -181,7 +181,7 @@ BEGIN
     -- Create 4 output channels (most common setup)
     FOR i IN 1..4 LOOP
       INSERT INTO relay_channels (device_id, channel_number, channel_type, display_name, gui_switch_type)
-      VALUES (NEW.id, i, 'output', 'Channel ' || i, 'light');
+      VALUES (NEW.id, i, 'output', 'OUT_' || i, 'light');
     END LOOP;
   END IF;
   
@@ -219,14 +219,6 @@ CREATE TRIGGER update_devices_updated_at BEFORE UPDATE ON devices
 DROP TRIGGER IF EXISTS update_relay_channels_updated_at ON relay_channels;
 CREATE TRIGGER update_relay_channels_updated_at BEFORE UPDATE ON relay_channels
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Insert some sample devices for testing (optional)
-INSERT INTO devices (device_id, name, description, device_type, liquid_type, max_capacity) VALUES
-('VM001', 'Milk Vending Machine #1', 'Main entrance milk dispenser', 'vending_machine', 'milk', 5000),
-('VM002', 'Oil Vending Machine #1', 'Kitchen cooking oil dispenser', 'vending_machine', 'cooking_oil', 3000),
-('RD001', 'Living Room Controller', 'Main living room relay controller', 'relay_device', NULL, NULL),
-('WP001', 'Garden Water Pump', 'Automatic garden watering system', 'water_pump', NULL, NULL)
-ON CONFLICT (device_id) DO NOTHING;
 
 -- Verify tables were created
 SELECT 

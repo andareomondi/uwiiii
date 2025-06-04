@@ -178,29 +178,49 @@ export default function DeviceCard({ device, onUpdate }) {
               {device.status || "offline"}
             </span>
           </div>
-          {device.relay_channels && device.relay_channels.length > 0 ? (
-            device.relay_channels.map((channel) => (
-              <div key={channel.id} className="flex items-center justify-between p-2 bg-white rounded-lg border">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    {channel.gui_switch_type === "light" && "💡"}
-                    {channel.gui_switch_type === "fan" && "🌀"}
-                    {channel.gui_switch_type === "outlet" && "🔌"}
+          
+          {/* Input Channels (Read-only) */}
+          <div className="space-y-2">
+            <div className="text-sm font-medium text-gray-600">Input Channels</div>
+            <div className="flex flex-wrap gap-2">
+              {device.relay_channels
+                ?.filter((channel) => channel.channel_type === "input")
+                .map((channel) => (
+                  <div key={channel.id} className="flex items-center gap-2 p-2 bg-white rounded-lg border">
+                    <div className="w-2 h-2 rounded-full bg-current" 
+                      style={{ color: channel.state === "on" ? "#22c55e" : "#d1d5db" }} 
+                    />
+                    <span className="text-sm">{channel.display_name}</span>
                   </div>
-                  <span className="text-sm font-medium">{channel.display_name}</span>
-                </div>
-                <Switch
-                  checked={channel.state === "on"}
-                  onCheckedChange={(checked) => handleToggle(channel.id, checked)}
-                  disabled={isLoading}
-                />
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-4 text-gray-500">
-              <p className="text-sm">No channels configured</p>
+                ))}
             </div>
-          )}
+          </div>
+
+          {/* Output Channels (Toggleable) */}
+          <div className="space-y-2">
+            <div className="text-sm font-medium text-gray-600">Output Channels</div>
+            <div className="space-y-2">
+              {device.relay_channels
+                ?.filter((channel) => channel.channel_type === "output")
+                .map((channel) => (
+                  <div key={channel.id} className="flex items-center justify-between p-2 bg-white rounded-lg border">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        {channel.gui_switch_type === "light" && "💡"}
+                        {channel.gui_switch_type === "fan" && "🌀"}
+                        {channel.gui_switch_type === "outlet" && "🔌"}
+                      </div>
+                      <span className="text-sm font-medium">{channel.display_name}</span>
+                    </div>
+                    <Switch
+                      checked={channel.state === "on"}
+                      onCheckedChange={(checked) => handleToggle(channel.id, checked)}
+                      disabled={isLoading}
+                    />
+                  </div>
+                ))}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

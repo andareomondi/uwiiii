@@ -357,10 +357,50 @@ export default function AdminPage() {
                         </>
                       )}
                       {device.device_type === "relay_device" && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Channels:</span>
-                          <span>{device.relay_channels?.length || 0}</span>
-                        </div>
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Input Channels:</span>
+                            <span>{device.relay_channels?.filter(ch => ch.channel_type === 'input').length || 0}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Output Channels:</span>
+                            <span>{device.relay_channels?.filter(ch => ch.channel_type === 'output').length || 0}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            <div>
+                              <span className="text-xs text-gray-500">Inputs</span>
+                              <div className="flex flex-wrap gap-1">
+                                {device.relay_channels
+                                  ?.filter(ch => ch.channel_type === 'input')
+                                  .map(channel => (
+                                    <Badge 
+                                      key={channel.id} 
+                                      variant={channel.state === 'on' ? 'default' : 'outline'}
+                                      className="text-xs"
+                                    >
+                                      {channel.display_name}
+                                    </Badge>
+                                  ))}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="text-xs text-gray-500">Outputs</span>
+                              <div className="flex flex-wrap gap-1">
+                                {device.relay_channels
+                                  ?.filter(ch => ch.channel_type === 'output')
+                                  .map(channel => (
+                                    <Badge 
+                                      key={channel.id} 
+                                      variant={channel.state === 'on' ? 'default' : 'outline'}
+                                      className="text-xs"
+                                    >
+                                      {channel.display_name}
+                                    </Badge>
+                                  ))}
+                              </div>
+                            </div>
+                          </div>
+                        </>
                       )}
                       {device.device_type === "water_pump" && (
                         <div className="flex justify-between">
