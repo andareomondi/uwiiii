@@ -7,12 +7,14 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt"
 
 const inter = Inter({ subsets: ["latin"] })
 
+export const viewport = {
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+  themeColor: "#3B82F6",
+}
 export const metadata = {
   title: "VendorFlow",
   description: "Manage your IoT devices with MQTT integration",
   manifest: "/manifest.json",
-  themeColor: "#3B82F6",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
