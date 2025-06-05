@@ -3,46 +3,50 @@
 
 let mqttClient = null
 
-export const initializeMQTT = () => {
+export const initializeMQTT = async () => {
   if (typeof window !== "undefined" && !mqttClient) {
-    // Use WebSocket connection for browser
-    const mqtt = require("mqtt")
+    try {
+      // Use dynamic import instead of require
+      const mqtt = await import("mqtt/dist/mqtt.min.js")
 
-    // Replace with your actual MQTT broker URL
-    const brokerUrl = process.env.NEXT_PUBLIC_MQTT_BROKER_URL || "wss://broker.emqx.io:8084/mqtt"
+      // Replace with your actual MQTT broker URL
+      const brokerUrl = process.env.NEXT_PUBLIC_MQTT_BROKER_URL || "wss://broker.emqx.io:8084/mqtt"
 
-    mqttClient = mqtt.connect(brokerUrl, {
-      clientId: `vendorflow_${Math.random().toString(16).substr(2, 8)}`,
-      clean: true,
-      connectTimeout: 4000,
-      username: process.env.NEXT_PUBLIC_MQTT_USERNAME || "",
-      password: process.env.NEXT_PUBLIC_MQTT_PASSWORD || "",
-      reconnectPeriod: 1000,
-    })
+      mqttClient = mqtt.connect(brokerUrl, {
+        clientId: `vendorflow_${Math.random().toString(16).substr(2, 8)}`,
+        clean: true,
+        connectTimeout: 4000,
+        username: process.env.NEXT_PUBLIC_MQTT_USERNAME || "",
+        password: process.env.NEXT_PUBLIC_MQTT_PASSWORD || "",
+        reconnectPeriod: 1000,
+      })
 
-    mqttClient.on("connect", () => {
-      console.log("Connected to MQTT broker")
-    })
+      mqttClient.on("connect", () => {
+        console.log("Connected to MQTT broker")
+      })
 
-    mqttClient.on("error", (error) => {
-      console.error("MQTT connection error:", error)
-    })
+      mqttClient.on("error", (error) => {
+        console.error("MQTT connection error:", error)
+      })
 
-    mqttClient.on("message", (topic, message) => {
-      try {
-        const payload = JSON.parse(message.toString())
-        console.log("Received MQTT message:", { topic, payload })
+      mqttClient.on("message", (topic, message) => {
+        try {
+          const payload = JSON.parse(message.toString())
+          console.log("Received MQTT message:", { topic, payload })
 
-        // Send to our API for processing
-        fetch("/api/mqtt/messages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ topic, payload, device_id: payload.device_id }),
-        })
-      } catch (error) {
-        console.error("Error processing MQTT message:", error)
-      }
-    })
+          // Send to our API for processing
+          fetch("/api/mqtt/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ topic, payload, device_id: payload.device_id }),
+          })
+        } catch (error) {
+          console.error("Error processing MQTT message:", error)
+        }
+      })
+    } catch (error) {
+      console.error("Failed to load MQTT client:", error)
+    }
   }
 
   return mqttClient
@@ -50,7 +54,8 @@ export const initializeMQTT = () => {
 
 export const publishMQTTMessage = async (topic, message) => {
   try {
-    const client = initializeMQTT()
+    // Make sure MQTT client is initialized
+    const client = await initializeMQTT()
 
     if (client && client.connected) {
       // Publish directly to MQTT broker
@@ -59,6 +64,7 @@ export const publishMQTTMessage = async (topic, message) => {
       return { success: true }
     } else {
       // Fallback to API route if MQTT client not available
+      console.log("MQTT client not connected, using API fallback")
       const response = await fetch("/api/mqtt/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -68,7 +74,19 @@ export const publishMQTTMessage = async (topic, message) => {
     }
   } catch (error) {
     console.error("Error publishing MQTT message:", error)
-    throw error
+
+    // Fallback to API route in case of errors
+    try {
+      const response = await fetch("/api/mqtt/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic, message }),
+      })
+      return response.json()
+    } catch (fallbackError) {
+      console.error("API fallback also failed:", fallbackError)
+      throw error
+    }
   }
 }
 
