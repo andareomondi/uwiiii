@@ -1,10 +1,13 @@
--- First, create the shops table (referenced by devices)
+-- VendorFlow Database Setup Script
+-- Creates all necessary tables, relationships, and sample data
+
+-- Create the shops table
 CREATE TABLE IF NOT EXISTS shops (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   description TEXT,
   location VARCHAR(255),
-  owner UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  owner UUID,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -16,8 +19,8 @@ CREATE TABLE IF NOT EXISTS devices (
   name VARCHAR(255) NOT NULL,
   description TEXT,
   device_type VARCHAR(50) NOT NULL CHECK (device_type IN ('vending_machine', 'relay_device', 'water_pump')),
-  owner UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  shop_id UUID REFERENCES shops(id) ON DELETE SET NULL,
+  owner UUID,
+  shop_id UUID,
   is_active BOOLEAN DEFAULT FALSE,
   status VARCHAR(20) DEFAULT 'offline' CHECK (status IN ('online', 'offline', 'error')),
   
@@ -39,11 +42,11 @@ CREATE TABLE IF NOT EXISTS devices (
 -- Create the relay_channels table
 CREATE TABLE IF NOT EXISTS relay_channels (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  device_id UUID REFERENCES devices(id) ON DELETE CASCADE,
+  device_id UUID,
   channel_number INTEGER NOT NULL CHECK (channel_number BETWEEN 1 AND 8),
   channel_type VARCHAR(10) NOT NULL CHECK (channel_type IN ('input', 'output')),
   display_name VARCHAR(100) DEFAULT '',
-  gui_switch_type VARCHAR(20) DEFAULT 'light' CHECK (gui_switch_type IN ('light', 'fan', 'outlet')),
+  gui_switch_type VARCHAR(20) DEFAULT 'light' CHECK (gui_switch_type IN ('light', 'fan', 'outlet', 'heater', 'pump')),
   state VARCHAR(10) DEFAULT 'off' CHECK (state IN ('on', 'off')),
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -64,6 +67,30 @@ CREATE TABLE IF NOT EXISTS mqtt_messages (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Add foreign key constraints
+DO $$ 
+BEGIN
+  -- Add foreign key for devices.shop_id
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints 
+    WHERE constraint_name = 'devices_shop_id_fkey' 
+    AND table_name = 'devices'
+  ) THEN
+    ALTER TABLE devices ADD CONSTRAINT devices_shop_id_fkey 
+    FOREIGN KEY (shop_id) REFERENCES shops(id) ON DELETE SET NULL;
+  END IF;
+
+  -- Add foreign key for relay_channels.device_id
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints 
+    WHERE constraint_name = 'relay_channels_device_id_fkey' 
+    AND table_name = 'relay_channels'
+  ) THEN
+    ALTER TABLE relay_channels ADD CONSTRAINT relay_channels_device_id_fkey 
+    FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_shops_owner ON shops(owner);
 CREATE INDEX IF NOT EXISTS idx_devices_owner ON devices(owner);
@@ -74,119 +101,28 @@ CREATE INDEX IF NOT EXISTS idx_relay_channels_device ON relay_channels(device_id
 CREATE INDEX IF NOT EXISTS idx_mqtt_messages_device ON mqtt_messages(device_id);
 CREATE INDEX IF NOT EXISTS idx_mqtt_messages_timestamp ON mqtt_messages(timestamp);
 
--- Disable Row Level Security
-ALTER TABLE shops DISABLE ROW LEVEL SECURITY;
-ALTER TABLE devices DISABLE ROW LEVEL SECURITY;
-ALTER TABLE relay_channels DISABLE ROW LEVEL SECURITY;
-ALTER TABLE mqtt_messages DISABLE ROW LEVEL SECURITY;
-
--- RLS Policies for shops
-DROP POLICY IF EXISTS "Users can view their own shops" ON shops;
-CREATE POLICY "Users can view their own shops" ON shops
-  FOR SELECT USING (auth.uid() = owner);
-
-DROP POLICY IF EXISTS "Users can create shops" ON shops;
-CREATE POLICY "Users can create shops" ON shops
-  FOR INSERT WITH CHECK (auth.uid() = owner);
-
-DROP POLICY IF EXISTS "Users can update their own shops" ON shops;
-CREATE POLICY "Users can update their own shops" ON shops
-  FOR UPDATE USING (auth.uid() = owner);
-
-DROP POLICY IF EXISTS "Users can delete their own shops" ON shops;
-CREATE POLICY "Users can delete their own shops" ON shops
-  FOR DELETE USING (auth.uid() = owner);
-
--- RLS Policies for devices
-DROP POLICY IF EXISTS "Users can view their own devices" ON devices;
-CREATE POLICY "Users can view their own devices" ON devices
-  FOR SELECT USING (auth.uid() = owner OR owner IS NULL);
-
-DROP POLICY IF EXISTS "Users can update their own devices" ON devices;
-CREATE POLICY "Users can update their own devices" ON devices
-  FOR UPDATE USING (auth.uid() = owner);
-
-DROP POLICY IF EXISTS "Admins can create devices" ON devices;
-CREATE POLICY "Admins can create devices" ON devices
-  FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' = 'admin'
-    )
-  );
-
-DROP POLICY IF EXISTS "Admins can delete devices" ON devices;
-CREATE POLICY "Admins can delete devices" ON devices
-  FOR DELETE USING (
-    EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' = 'admin'
-    )
-  );
-
--- RLS Policies for relay_channels
-DROP POLICY IF EXISTS "Users can view relay channels for their devices" ON relay_channels;
-CREATE POLICY "Users can view relay channels for their devices" ON relay_channels
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM devices 
-      WHERE devices.id = relay_channels.device_id 
-      AND devices.owner = auth.uid()
-    )
-  );
-
-DROP POLICY IF EXISTS "Users can update relay channels for their devices" ON relay_channels;
-CREATE POLICY "Users can update relay channels for their devices" ON relay_channels
-  FOR UPDATE USING (
-    EXISTS (
-      SELECT 1 FROM devices 
-      WHERE devices.id = relay_channels.device_id 
-      AND devices.owner = auth.uid()
-    )
-  );
-
-DROP POLICY IF EXISTS "Admins can manage relay channels" ON relay_channels;
-CREATE POLICY "Admins can manage relay channels" ON relay_channels
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' = 'admin'
-    )
-  );
-
--- RLS Policies for mqtt_messages
-DROP POLICY IF EXISTS "Users can view MQTT messages for their devices" ON mqtt_messages;
-CREATE POLICY "Users can view MQTT messages for their devices" ON mqtt_messages
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM devices 
-      WHERE devices.device_id = mqtt_messages.device_id 
-      AND devices.owner = auth.uid()
-    )
-  );
-
-DROP POLICY IF EXISTS "System can insert MQTT messages" ON mqtt_messages;
-CREATE POLICY "System can insert MQTT messages" ON mqtt_messages
-  FOR INSERT WITH CHECK (true);
-
 -- Function to create relay channels for new relay devices
 CREATE OR REPLACE FUNCTION create_relay_channels_for_device()
 RETURNS TRIGGER AS $$
 BEGIN
   -- Only create channels for relay devices
   IF NEW.device_type = 'relay_device' THEN
-    -- Create 8 output channels (most common setup)
+    -- Create 8 input channels
     FOR i IN 1..8 LOOP
       INSERT INTO relay_channels (device_id, channel_number, channel_type, display_name, gui_switch_type)
-      VALUES (NEW.id, i, 'input', 'IN_' || i, 'light');
+      VALUES (NEW.id, i, 'input', 'Input ' || i, 'light');
     END LOOP;
-    FOR i IN 1..8 LOOP
-      INSERT INTO relay_channels (device_id, channel_number, channel_type, display_name, gui_switch_type)
-      VALUES (NEW.id, i, 'output', 'OUT_' || i, 'light');
-    END LOOP;
+    
+    -- Create 8 output channels with different switch types
+    INSERT INTO relay_channels (device_id, channel_number, channel_type, display_name, gui_switch_type) VALUES
+    (NEW.id, 1, 'output', 'Living Room Light', 'light'),
+    (NEW.id, 2, 'output', 'Ceiling Fan', 'fan'),
+    (NEW.id, 3, 'output', 'Power Outlet', 'outlet'),
+    (NEW.id, 4, 'output', 'Water Heater', 'heater'),
+    (NEW.id, 5, 'output', 'Garden Pump', 'pump'),
+    (NEW.id, 6, 'output', 'Kitchen Light', 'light'),
+    (NEW.id, 7, 'output', 'Bedroom Fan', 'fan'),
+    (NEW.id, 8, 'output', 'Garage Outlet', 'outlet');
   END IF;
   
   RETURN NEW;
@@ -209,28 +145,37 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Add update triggers for shops
+-- Add update triggers
 DROP TRIGGER IF EXISTS update_shops_updated_at ON shops;
 CREATE TRIGGER update_shops_updated_at BEFORE UPDATE ON shops
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Add update triggers for devices
 DROP TRIGGER IF EXISTS update_devices_updated_at ON devices;
 CREATE TRIGGER update_devices_updated_at BEFORE UPDATE ON devices
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Add update triggers for relay_channels
 DROP TRIGGER IF EXISTS update_relay_channels_updated_at ON relay_channels;
 CREATE TRIGGER update_relay_channels_updated_at BEFORE UPDATE ON relay_channels
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Verify tables were created
+-- Insert sample devices for VendorFlow
+INSERT INTO devices (device_id, name, description, device_type, liquid_type, max_capacity) VALUES
+('VF_VM001', 'VendorFlow Milk Station #1', 'Main entrance fresh milk dispenser', 'vending_machine', 'milk', 5000),
+('VF_VM002', 'VendorFlow Oil Dispenser #1', 'Kitchen premium cooking oil station', 'vending_machine', 'cooking_oil', 3000),
+('VF_RD001', 'VendorFlow Smart Controller', 'Main building relay control system', 'relay_device', NULL, NULL),
+('VF_WP001', 'VendorFlow Garden Pump', 'Automated irrigation water pump system', 'water_pump', NULL, NULL)
+ON CONFLICT (device_id) DO NOTHING;
+
+-- Verify tables were created successfully
 SELECT 
   table_name,
-  column_name,
-  data_type,
-  is_nullable
+  COUNT(*) as column_count
 FROM information_schema.columns 
 WHERE table_name IN ('shops', 'devices', 'relay_channels', 'mqtt_messages')
   AND table_schema = 'public'
-ORDER BY table_name, ordinal_position;
+GROUP BY table_name
+ORDER BY table_name;
+
+-- Show sample data
+SELECT 'VendorFlow sample devices created:' as info;
+SELECT device_id, name, device_type FROM devices WHERE device_id LIKE 'VF_%' LIMIT 5;

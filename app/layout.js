@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata = {
   title: "VendorFlow",
   description: "Manage your IoT devices with MQTT integration",
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({ children }) {

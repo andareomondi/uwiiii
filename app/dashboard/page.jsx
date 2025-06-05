@@ -1,80 +1,106 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import Navigation from "@/components/Navigation"
 import DeviceCard from "@/components/DeviceCard"
-import { createClient } from "@/utils/supabase/server"
+import { createClient } from "@/utils/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
-async function getDashboardData() {
+export default function DashboardPage() {
+  const [data, setData] = useState({ shops: [], devices: [], user: null })
+  const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
-  try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return null
-
-    // Get user's shops
-    const { data: shops, error: shopsError } = await supabase
-      .from("shops")
-      .select("*")
-      .eq("owner", user.id)
-      .order("created_at", { ascending: false })
-
-    if (shopsError) {
-      console.error("Error fetching shops:", shopsError)
-    }
-
-    // Get user's devices with better error handling
-    let devices = []
+  const fetchDashboardData = async () => {
     try {
-      const { data: devicesData, error: devicesError } = await supabase
-        .from("devices")
-        .select(`
-          *,
-          relay_channels (*)
-        `)
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        setData({ shops: [], devices: [], user: null })
+        setLoading(false)
+        return
+      }
+
+      // Get user's shops
+      const { data: shops, error: shopsError } = await supabase
+        .from("shops")
+        .select("*")
         .eq("owner", user.id)
-        .eq("is_active", true)
         .order("created_at", { ascending: false })
 
-      if (devicesError) {
-        console.log("Fetching devices without relations...")
-        // Fallback: fetch devices without relations
-        const { data: simpleDevices, error: simpleError } = await supabase
+      if (shopsError) {
+        console.error("Error fetching shops:", shopsError)
+      }
+
+      // Get user's devices with better error handling
+      let devices = []
+      try {
+        const { data: devicesData, error: devicesError } = await supabase
           .from("devices")
-          .select("*")
+          .select(`
+            *,
+            relay_channels (*)
+          `)
           .eq("owner", user.id)
           .eq("is_active", true)
           .order("created_at", { ascending: false })
 
-        if (simpleError) {
-          console.error("Error fetching devices:", simpleError)
-          devices = []
+        if (devicesError) {
+          console.log("Fetching devices without relations...")
+          // Fallback: fetch devices without relations
+          const { data: simpleDevices, error: simpleError } = await supabase
+            .from("devices")
+            .select("*")
+            .eq("owner", user.id)
+            .eq("is_active", true)
+            .order("created_at", { ascending: false })
+
+          if (simpleError) {
+            console.error("Error fetching devices:", simpleError)
+            devices = []
+          } else {
+            devices = simpleDevices?.map((device) => ({ ...device, relay_channels: [] })) || []
+          }
         } else {
-          devices = simpleDevices?.map((device) => ({ ...device, relay_channels: [] })) || []
+          devices = devicesData || []
         }
-      } else {
-        devices = devicesData || []
+      } catch (error) {
+        console.error("Database error:", error)
+        devices = []
       }
+
+      setData({ shops: shops || [], devices, user })
     } catch (error) {
-      console.error("Database error:", error)
-      devices = []
+      console.error("Error in fetchDashboardData:", error)
+      setData({ shops: [], devices: [], user: null })
+    } finally {
+      setLoading(false)
     }
-
-    return { shops: shops || [], devices, user }
-  } catch (error) {
-    console.error("Error in getDashboardData:", error)
-    return { shops: [], devices: [], user: null }
   }
-}
 
-export default async function DashboardPage() {
-  const data = await getDashboardData()
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
 
-  if (!data || !data.user) {
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-gray-50">
+          <Navigation />
+          <div className="flex items-center justify-center h-96">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+          </div>
+        </div>
+      </ProtectedRoute>
+    )
+  }
+
+  if (!data.user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
         <div className="container mx-auto px-4 py-16">
@@ -204,7 +230,7 @@ export default async function DashboardPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {devices.map((device) => (
-                  <DeviceCard key={device.id} device={device} />
+                  <DeviceCard key={device.id} device={device} onUpdate={fetchDashboardData} />
                 ))}
               </div>
             </div>

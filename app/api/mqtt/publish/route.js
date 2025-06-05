@@ -1,24 +1,22 @@
-// This is just mirroring what the mqtt system does, So just replace this with actual mqtt setup. By firstly installing the mqtt package and setting up everything
-// It's getting the json packets from the @/utils/mqtt.js which is not ideal
 import { NextResponse } from "next/server"
 
 export async function POST(request) {
   try {
     const { topic, message } = await request.json()
 
-    // Here you would integrate with your actual MQTT broker
-    // For now, we'll simulate the MQTT publish and store in database
-
-    // In a real implementation, you would use a library like 'mqtt' to publish
+    // For server-side MQTT publishing, you would use the mqtt package here
     // const mqtt = require('mqtt')
-    // const client = mqtt.connect('mqtt://your-broker-url')
+    // const client = mqtt.connect(process.env.MQTT_BROKER_URL)
     // client.publish(topic, JSON.stringify(message))
 
-    console.log("Publishing MQTT message:", { topic, message })
+    console.log("MQTT Publish Request:", { topic, message })
 
+    // Simulate successful publish
     return NextResponse.json({
       success: true,
       message: "MQTT message published successfully",
+      topic,
+      timestamp: new Date().toISOString(),
     })
   } catch (error) {
     console.error("Error publishing MQTT message:", error)

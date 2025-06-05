@@ -22,7 +22,7 @@ export default function Navigation() {
       await supabase.auth.signOut()
       toast({
         title: "Logged out successfully",
-        description: "You have been signed out of your account.",
+        description: "You have been signed out of VendorFlow.",
         variant: "default",
       })
       router.push("/login")

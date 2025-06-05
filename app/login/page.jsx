@@ -48,11 +48,11 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-gray-900">VendorFlow</CardTitle>
-          <CardDescription>{isSignUp ? "Create your account" : "Sign in to your account"}</CardDescription>
+          <CardDescription>{isSignUp ? "Create your VendorFlow account" : "Sign in to VendorFlow"}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAuth} className="space-y-4">
-          {error && (
+            {error && (
               <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">{error}</div>
             )}
             <div>

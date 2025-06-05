@@ -41,35 +41,21 @@ export default function AdminPage() {
 
   const fetchAllDevices = async () => {
     try {
-      // Try to fetch devices with relay_channels
-      let devicesData
-      try {
-        const { data, error } = await supabase
-          .from("devices")
-          .select(`
-            *,
-            relay_channels (*)
-          `)
-          .order("created_at", { ascending: false })
+      const { data, error } = await supabase
+        .from("devices")
+        .select(`
+          *,
+          relay_channels (*)
+        `)
+        .order("created_at", { ascending: false })
 
-        if (error) throw error
-        devicesData = data
-      } catch (relationError) {
-        console.log("Fetching devices without relations:", relationError)
-
-        // Fallback: fetch devices without relations
-        const { data, error } = await supabase.from("devices").select("*").order("created_at", { ascending: false })
-
-        if (error) throw error
-        devicesData = data?.map((device) => ({ ...device, relay_channels: [] })) || []
-      }
-
-      setDevices(devicesData || [])
+      if (error) throw error
+      setDevices(data || [])
     } catch (error) {
       console.error("Error fetching devices:", error)
       toast({
         title: "Error",
-        description: "Failed to fetch devices. Please check if the database tables exist.",
+        description: "Failed to fetch devices.",
         variant: "destructive",
       })
     } finally {
@@ -89,7 +75,6 @@ export default function AdminPage() {
         status: "offline",
       }
 
-      // Add device type specific fields
       if (newDevice.device_type === "vending_machine") {
         if (!newDevice.liquid_type) {
           toast({
@@ -111,18 +96,12 @@ export default function AdminPage() {
 
       if (error) throw error
 
-      if (!data || data.length === 0) {
-        throw new Error("No data returned from database")
-      }
-
-      // Add relay_channels property for consistency
       const newDeviceWithChannels = {
         ...data[0],
         relay_channels: [],
       }
 
       setDevices([newDeviceWithChannels, ...devices])
-
       setNewDevice({
         device_id: "",
         name: "",
@@ -138,6 +117,9 @@ export default function AdminPage() {
         description: "Device created successfully!",
         variant: "success",
       })
+
+      // Refresh to get the auto-created relay channels
+      setTimeout(fetchAllDevices, 1000)
     } catch (error) {
       console.error("Error creating device:", error)
       toast({
@@ -149,6 +131,8 @@ export default function AdminPage() {
   }
 
   const handleDeleteDevice = async (deviceId, deviceName) => {
+    if (!confirm(`Are you sure you want to delete "${deviceName}"?`)) return
+
     try {
       const { error } = await supabase.from("devices").delete().eq("id", deviceId)
 
@@ -165,7 +149,7 @@ export default function AdminPage() {
       console.error("Error deleting device:", error)
       toast({
         title: "Error",
-        description: "Failed to delete device. Please try again.",
+        description: "Failed to delete device.",
         variant: "destructive",
       })
     }
@@ -210,7 +194,7 @@ export default function AdminPage() {
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Panel</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">VendorFlow Admin Panel</h1>
               <p className="text-gray-600">Manage IoT devices and system settings</p>
             </div>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -342,73 +326,28 @@ export default function AdminPage() {
                         <span className="text-gray-600">Owner:</span>
                         <span>{device.owner ? "Assigned" : "Unassigned"}</span>
                       </div>
-                      {device.device_type === "vending_machine" && (
-                        <>
-                          {device.liquid_type && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Liquid:</span>
-                              <span>{device.liquid_type}</span>
-                            </div>
-                          )}
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Level:</span>
-                            <span>{device.current_level || 0}ml</span>
-                          </div>
-                        </>
-                      )}
-                      {device.device_type === "relay_device" && (
-                        <>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Input Channels:</span>
-                            <span>{device.relay_channels?.filter(ch => ch.channel_type === 'input').length || 0}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Output Channels:</span>
-                            <span>{device.relay_channels?.filter(ch => ch.channel_type === 'output').length || 0}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 mt-2">
-                            <div>
-                              <span className="text-xs text-gray-500">Inputs</span>
-                              <div className="flex flex-wrap gap-1">
-                                {device.relay_channels
-                                  ?.filter(ch => ch.channel_type === 'input')
-                                  .map(channel => (
-                                    <Badge 
-                                      key={channel.id} 
-                                      variant={channel.state === 'on' ? 'default' : 'outline'}
-                                      className="text-xs"
-                                    >
-                                      {channel.display_name}
-                                    </Badge>
-                                  ))}
-                              </div>
-                            </div>
-                            <div>
-                              <span className="text-xs text-gray-500">Outputs</span>
-                              <div className="flex flex-wrap gap-1">
-                                {device.relay_channels
-                                  ?.filter(ch => ch.channel_type === 'output')
-                                  .map(channel => (
-                                    <Badge 
-                                      key={channel.id} 
-                                      variant={channel.state === 'on' ? 'default' : 'outline'}
-                                      className="text-xs"
-                                    >
-                                      {channel.display_name}
-                                    </Badge>
-                                  ))}
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                      {device.device_type === "water_pump" && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Balance:</span>
-                          <span>{device.balance || 0}L</span>
-                        </div>
-                      )}
                     </div>
+
+                    {/* Relay Channel Configuration */}
+                    {device.device_type === "relay_device" && device.relay_channels && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium">Relay Channels</h4>
+                        <div className="max-h-32 overflow-y-auto space-y-1">
+                          {device.relay_channels.map((channel) => (
+                            <div
+                              key={channel.id}
+                              className="flex items-center justify-between p-2 bg-gray-50 rounded text-xs"
+                            >
+                              <span>{channel.display_name}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {channel.channel_type}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <p className="text-sm text-gray-600">{device.description}</p>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" className="flex-1">
