@@ -46,7 +46,7 @@ export default function SmartHomePage() {
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
           <Navigation />
           <div className="flex items-center justify-center h-96">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
@@ -58,14 +58,14 @@ export default function SmartHomePage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 py-8">
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Smart Home</h1>
-              <p className="text-gray-600">Control your home devices</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Smart Home</h1>
+              <p className="text-gray-600 dark:text-gray-400">Control your home devices</p>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-2xl">❄️</span>
@@ -74,7 +74,7 @@ export default function SmartHomePage() {
           </div>
           {/* Device Count */}
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">{devices.length} devices</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{devices.length} devices</h2>
             <Button size="sm" className="flex items-center gap-2">
               <Plus size={16} />
               Add Device
@@ -89,11 +89,13 @@ export default function SmartHomePage() {
           </div>
 
           {devices.length === 0 && (
-            <Card className="text-center py-12 bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+            <Card className="text-center py-12 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border-0 shadow-lg">
               <CardContent>
                 <div className="text-6xl mb-4">🏠</div>
-                <h3 className="text-xl font-semibold mb-2">No Smart Home Devices</h3>
-                <p className="text-gray-600 mb-4">Add relay devices and water pumps to control your home</p>
+                <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">No Smart Home Devices</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  Add relay devices and water pumps to control your home
+                </p>
                 <Button>Browse Marketplace</Button>
               </CardContent>
             </Card>

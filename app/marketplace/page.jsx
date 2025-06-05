@@ -124,12 +124,12 @@ export default function MarketplacePage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Device Marketplace</h1>
-            <p className="text-gray-600">Acquire new IoT devices for your setup</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Device Marketplace</h1>
+            <p className="text-gray-600 dark:text-gray-400">Acquire new IoT devices for your setup</p>
           </div>
 
           {/* Filter Tabs */}
@@ -152,21 +152,21 @@ export default function MarketplacePage() {
               <Card key={device.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg">{device.name}</CardTitle>
+                    <CardTitle className="text-lg text-gray-900 dark:text-white">{device.name}</CardTitle>
                     <Badge variant="secondary">{device.device_type.replace("_", " ")}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-600">{device.description}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{device.description}</p>
 
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span>Device ID:</span>
+                        <span className="text-gray-700 dark:text-gray-300">Device ID:</span>
                         <span className="font-mono">{device.device_id}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span>Status:</span>
+                        <span className="text-gray-700 dark:text-gray-300">Status:</span>
                         <Badge variant="outline" className="text-green-600">
                           Available
                         </Badge>
@@ -174,7 +174,7 @@ export default function MarketplacePage() {
                       {device.device_type === "vending_machine" && (
                         <>
                           <div className="flex justify-between text-sm">
-                            <span>Liquid Type:</span>
+                            <span className="text-gray-700 dark:text-gray-300">Liquid Type:</span>
                             <span>{device.liquid_type}</span>
                           </div>
                           <div>
@@ -215,8 +215,8 @@ export default function MarketplacePage() {
             <Card className="text-center py-12">
               <CardContent>
                 <div className="text-6xl mb-4">📦</div>
-                <h3 className="text-xl font-semibold mb-2">No Devices Available</h3>
-                <p className="text-gray-600">Check back later for new devices or contact admin</p>
+                <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">No Devices Available</h3>
+                <p className="text-gray-600 dark:text-gray-400">Check back later for new devices or contact admin</p>
               </CardContent>
             </Card>
           )}

@@ -2,13 +2,15 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Store, Zap, Settings, LogOut, Menu, X, Shield } from "lucide-react"
+import { Home, Store, Zap, Settings, LogOut, Menu, X, Shield, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/utils/supabase/client"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { useUserRole } from "@/hooks/use-user-role"
 import { useToast } from "@/hooks/use-toast"
+import { ThemeToggle } from "@/components/ThemeToggle"
+import { OfflineIndicator } from "@/components/OfflineIndicator"
 
 export default function Navigation() {
   const pathname = usePathname()
@@ -40,6 +42,7 @@ export default function Navigation() {
     { href: "/shops", label: "My Shops", icon: Store },
     { href: "/smart-home", label: "Smart Home", icon: Zap },
     { href: "/marketplace", label: "Marketplace", icon: Settings },
+    { href: "/analytics", label: "Analytics", icon: BarChart3 },
   ]
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -50,20 +53,20 @@ export default function Navigation() {
   const getRoleBadgeColor = () => {
     switch (role) {
       case "admin":
-        return "bg-red-100 text-red-800"
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
       case "staff":
-        return "bg-blue-100 text-blue-800"
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
     }
   }
 
   return (
-    <nav className="bg-white shadow-lg border-b">
+    <nav className="bg-white dark:bg-gray-900 shadow-lg border-b dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-8">
-            <Link href="/dashboard" className="text-xl font-bold text-blue-600">
+            <Link href="/dashboard" className="text-xl font-bold text-blue-600 dark:text-blue-400">
               VendorFlow
             </Link>
             <div className="hidden md:flex space-x-4">
@@ -75,8 +78,8 @@ export default function Navigation() {
                     href={item.href}
                     className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       pathname === item.href
-                        ? "bg-blue-100 text-blue-700"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-800"
                     }`}
                   >
                     <Icon size={16} />
@@ -88,10 +91,16 @@ export default function Navigation() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Offline Indicator */}
+            <OfflineIndicator />
+
             {/* Role Badge */}
             <div className={`hidden md:flex px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor()}`}>
               {role.charAt(0).toUpperCase() + role.slice(1)}
             </div>
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
 
             <Button variant="outline" size="sm" onClick={handleLogout} className="hidden md:flex items-center gap-2">
               <LogOut size={16} />
@@ -112,7 +121,7 @@ export default function Navigation() {
 
         {/* Mobile menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t bg-white">
+          <div className="md:hidden border-t bg-white dark:bg-gray-900 dark:border-gray-800">
             <div className="px-2 pt-2 pb-3 space-y-1">
               {/* Role Badge Mobile */}
               <div
@@ -130,8 +139,8 @@ export default function Navigation() {
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       pathname === item.href
-                        ? "bg-blue-100 text-blue-700"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-800"
                     }`}
                   >
                     <Icon size={16} />

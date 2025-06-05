@@ -242,7 +242,7 @@ export default function DeviceCard({ device, onUpdate }) {
 
   if (displayDevice.device_type === "vending_machine") {
     return (
-      <Card className="bg-gradient-to-br from-blue-50 to-white border-0 shadow-lg rounded-3xl overflow-hidden transition-all duration-200 hover:shadow-xl">
+      <Card className="bg-gradient-to-br from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-800 border-0 shadow-lg rounded-3xl overflow-hidden transition-all duration-200 hover:shadow-xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -250,8 +250,12 @@ export default function DeviceCard({ device, onUpdate }) {
                 <Droplets className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <CardTitle className="text-lg font-semibold text-gray-800">{displayDevice.name}</CardTitle>
-                <p className="text-sm text-gray-500 capitalize">{displayDevice.liquid_type} Dispenser</p>
+                <CardTitle className="text-lg font-semibold text-gray-800 dark:text-white">
+                  {displayDevice.name}
+                </CardTitle>
+                <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                  {displayDevice.liquid_type} Dispenser
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -265,7 +269,7 @@ export default function DeviceCard({ device, onUpdate }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex justify-between items-center p-3 bg-white/60 rounded-2xl">
-            <span className="text-sm font-medium text-gray-600">Current Level</span>
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Current Level</span>
             <span className="text-lg font-bold text-blue-600">{displayDevice.current_level || 0}ml</span>
           </div>
 
@@ -289,7 +293,7 @@ export default function DeviceCard({ device, onUpdate }) {
 
   if (displayDevice.device_type === "water_pump") {
     return (
-      <Card className="bg-gradient-to-br from-green-50 to-white border-0 shadow-lg rounded-3xl overflow-hidden transition-all duration-200 hover:shadow-xl">
+      <Card className="bg-gradient-to-br from-green-50 to-white dark:from-green-900/20 dark:to-gray-800 border-0 shadow-lg rounded-3xl overflow-hidden transition-all duration-200 hover:shadow-xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -297,8 +301,10 @@ export default function DeviceCard({ device, onUpdate }) {
                 <Droplets className="w-6 h-6 text-green-600" />
               </div>
               <div>
-                <CardTitle className="text-lg font-semibold text-gray-800">{displayDevice.name}</CardTitle>
-                <p className="text-sm text-gray-500">Water Pump Controller</p>
+                <CardTitle className="text-lg font-semibold text-gray-800 dark:text-white">
+                  {displayDevice.name}
+                </CardTitle>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Water Pump Controller</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -317,12 +323,12 @@ export default function DeviceCard({ device, onUpdate }) {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex justify-between items-center p-3 bg-white/60 rounded-2xl">
-            <span className="text-sm font-medium text-gray-600">Water Balance</span>
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Water Balance</span>
             <span className="text-lg font-bold text-green-600">{displayDevice.balance || 0}L</span>
           </div>
 
           <div className="flex justify-between items-center p-3 bg-white/60 rounded-2xl">
-            <span className="text-sm font-medium text-gray-600">Status</span>
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Status</span>
             <Badge variant={displayDevice.state === "on" ? "default" : "secondary"} className="rounded-full">
               {displayDevice.state === "on" ? "Running" : "Stopped"}
             </Badge>
@@ -335,7 +341,7 @@ export default function DeviceCard({ device, onUpdate }) {
   // Relay device with modern design
   return (
     <>
-      <Card className="bg-gradient-to-br from-purple-50 to-white border-0 shadow-lg rounded-3xl overflow-hidden transition-all duration-200 hover:shadow-xl">
+      <Card className="bg-gradient-to-br from-purple-50 to-white dark:from-purple-900/20 dark:to-gray-800 border-0 shadow-lg rounded-3xl overflow-hidden transition-all duration-200 hover:shadow-xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -343,8 +349,10 @@ export default function DeviceCard({ device, onUpdate }) {
                 <Settings className="w-6 h-6 text-purple-600" />
               </div>
               <div>
-                <CardTitle className="text-lg font-semibold text-gray-800">{displayDevice.name}</CardTitle>
-                <p className="text-sm text-gray-500">Relay Controller</p>
+                <CardTitle className="text-lg font-semibold text-gray-800 dark:text-white">
+                  {displayDevice.name}
+                </CardTitle>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Relay Controller</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -360,21 +368,23 @@ export default function DeviceCard({ device, onUpdate }) {
           {/* Input Channels (Read-only indicators) */}
           {displayDevice.relay_channels?.filter((ch) => ch.channel_type === "input").length > 0 && (
             <div className="space-y-2">
-              <h4 className="text-sm font-medium text-gray-600">Input Status</h4>
+              <h4 className="text-sm font-medium text-gray-600 dark:text-gray-300">Input Status</h4>
               <div className="grid grid-cols-4 gap-2">
                 {displayDevice.relay_channels
                   ?.filter((ch) => ch.channel_type === "input")
                   .map((channel) => (
                     <div
                       key={channel.id}
-                      className="flex flex-col items-center p-2 bg-white/60 rounded-xl transition-all duration-200"
+                      className="flex flex-col items-center p-2 bg-white/60 dark:bg-gray-700/60 rounded-xl transition-all duration-200"
                     >
                       <div
                         className={`w-3 h-3 rounded-full mb-1 transition-colors duration-200 ${
                           channel.state === "on" ? "bg-green-400 shadow-lg shadow-green-200" : "bg-gray-300"
                         }`}
                       />
-                      <span className="text-xs text-gray-600 text-center">{channel.display_name}</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-400 text-center">
+                        {channel.display_name}
+                      </span>
                     </div>
                   ))}
               </div>
@@ -384,22 +394,26 @@ export default function DeviceCard({ device, onUpdate }) {
           {/* Output Channels (Toggleable controls) */}
           {displayDevice.relay_channels?.filter((ch) => ch.channel_type === "output").length > 0 && (
             <div className="space-y-3">
-              <h4 className="text-sm font-medium text-gray-600">Output Controls</h4>
+              <h4 className="text-sm font-medium text-gray-600 dark:text-gray-300">Output Controls</h4>
               <div className="space-y-2">
                 {displayDevice.relay_channels
                   ?.filter((ch) => ch.channel_type === "output")
                   .map((channel) => (
                     <div
                       key={channel.id}
-                      className="flex items-center justify-between p-3 bg-white/60 rounded-2xl transition-all duration-200 hover:bg-white/80"
+                      className="flex items-center justify-between p-3 bg-white/60 dark:bg-gray-700/60 rounded-2xl transition-all duration-200 hover:bg-white/80 dark:hover:bg-gray-700/80"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-purple-100 rounded-xl flex items-center justify-center">
                           {getDeviceIcon(channel.gui_switch_type)}
                         </div>
                         <div>
-                          <span className="text-sm font-medium text-gray-800">{channel.display_name}</span>
-                          <p className="text-xs text-gray-500 capitalize">{channel.gui_switch_type}</p>
+                          <span className="text-sm font-medium text-gray-800 dark:text-white">
+                            {channel.display_name}
+                          </span>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                            {channel.gui_switch_type}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -427,7 +441,7 @@ export default function DeviceCard({ device, onUpdate }) {
           {(!displayDevice.relay_channels || displayDevice.relay_channels.length === 0) && (
             <div className="text-center py-6 text-gray-500">
               <Settings className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No channels configured</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">No channels configured</p>
             </div>
           )}
         </CardContent>

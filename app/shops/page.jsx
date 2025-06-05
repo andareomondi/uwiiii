@@ -100,7 +100,7 @@ export default function ShopsPage() {
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
           <Navigation />
           <div className="flex items-center justify-center h-96">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
@@ -112,13 +112,13 @@ export default function ShopsPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">My Shops</h1>
-              <p className="text-gray-600">Manage your vending machine locations</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">My Shops</h1>
+              <p className="text-gray-600 dark:text-gray-400">Manage your vending machine locations</p>
             </div>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
@@ -129,11 +129,11 @@ export default function ShopsPage() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Create New Shop</DialogTitle>
+                  <DialogTitle className="text-gray-900 dark:text-white">Create New Shop</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleCreateShop} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Shop Name</label>
+                    <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Shop Name</label>
                     <Input
                       value={newShop.name}
                       onChange={(e) => setNewShop({ ...newShop, name: e.target.value })}
@@ -142,7 +142,7 @@ export default function ShopsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Location</label>
+                    <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Location</label>
                     <Input
                       value={newShop.location}
                       onChange={(e) => setNewShop({ ...newShop, location: e.target.value })}
@@ -151,7 +151,9 @@ export default function ShopsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Description</label>
+                    <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+                      Description
+                    </label>
                     <Textarea
                       value={newShop.description}
                       onChange={(e) => setNewShop({ ...newShop, description: e.target.value })}
@@ -177,7 +179,7 @@ export default function ShopsPage() {
             <div className="lg:col-span-1">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
                     <Store size={20} />
                     Shops ({shops.length})
                   </CardTitle>
@@ -188,8 +190,10 @@ export default function ShopsPage() {
                       <button
                         key={shop.id}
                         onClick={() => setSelectedShop(shop)}
-                        className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
-                          selectedShop?.id === shop.id ? "bg-blue-50 border-r-2 border-blue-500" : ""
+                        className={`w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+                          selectedShop?.id === shop.id
+                            ? "bg-blue-50 dark:bg-blue-900/20 border-r-2 border-blue-500"
+                            : ""
                         }`}
                       >
                         <div className="font-medium">{shop.name}</div>
@@ -210,14 +214,14 @@ export default function ShopsPage() {
                 <div className="space-y-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle>{selectedShop.name}</CardTitle>
-                      <div className="flex items-center gap-2 text-gray-600">
+                      <CardTitle className="text-gray-900 dark:text-white">{selectedShop.name}</CardTitle>
+                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                         <MapPin size={16} />
                         {selectedShop.location}
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-gray-700">{selectedShop.description}</p>
+                      <p className="text-gray-700 dark:text-gray-300">{selectedShop.description}</p>
                       <div className="mt-4 grid grid-cols-3 gap-4">
                         <div className="text-center">
                           <div className="text-2xl font-bold text-blue-600">{shopDevices.length}</div>
@@ -255,8 +259,12 @@ export default function ShopsPage() {
                       <Card className="text-center py-12">
                         <CardContent>
                           <div className="text-6xl mb-4">🥤</div>
-                          <h4 className="text-lg font-semibold mb-2">No Vending Machines</h4>
-                          <p className="text-gray-600 mb-4">Add vending machines to this shop from the marketplace</p>
+                          <h4 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
+                            No Vending Machines
+                          </h4>
+                          <p className="text-gray-600 dark:text-gray-400 mb-4">
+                            Add vending machines to this shop from the marketplace
+                          </p>
                           <Button>Browse Marketplace</Button>
                         </CardContent>
                       </Card>
@@ -267,8 +275,10 @@ export default function ShopsPage() {
                 <Card className="text-center py-12">
                   <CardContent>
                     <div className="text-6xl mb-4">🏪</div>
-                    <h3 className="text-xl font-semibold mb-2">No Shops Created</h3>
-                    <p className="text-gray-600 mb-4">Create your first shop to start managing vending machines</p>
+                    <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">No Shops Created</h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      Create your first shop to start managing vending machines
+                    </p>
                     <Button onClick={() => setIsCreateDialogOpen(true)}>Create Shop</Button>
                   </CardContent>
                 </Card>
