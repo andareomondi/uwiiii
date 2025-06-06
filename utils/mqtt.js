@@ -10,14 +10,14 @@ export const initializeMQTT = async () => {
       const mqtt = await import("mqtt/dist/mqtt.min.js")
 
       // Replace with your actual MQTT broker URL
-      const brokerUrl = process.env.NEXT_PUBLIC_MQTT_BROKER_URL || "wss://broker.emqx.io:8084/mqtt"
+      const brokerUrl = process.env.NEXT_PUBLIC_MQTT_BROKER_URL 
 
       mqttClient = mqtt.connect(brokerUrl, {
         clientId: `vendorflow_${Math.random().toString(16).substr(2, 8)}`,
         clean: true,
         connectTimeout: 4000,
-        username: process.env.NEXT_PUBLIC_MQTT_USERNAME || "",
-        password: process.env.NEXT_PUBLIC_MQTT_PASSWORD || "",
+        username: process.env.NEXT_PUBLIC_MQTT_USERNAME, 
+        password: process.env.NEXT_PUBLIC_MQTT_PASSWORD, 
         reconnectPeriod: 1000,
       })
 
