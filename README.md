@@ -14,7 +14,6 @@ VendorFlow is a comprehensive IoT device management platform that integrates MQT
 - **Role-based Access** - Admin, staff, and user permissions
 - **Modern UI** - Clean, responsive design inspired by modern smart home apps
 - **Real-time Updates** - Live device status and control feedback
-- **Mobile notifications** - Mobile notifications like native apps
 
 ## Live Demo
 

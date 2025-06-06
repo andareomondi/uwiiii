@@ -14,19 +14,20 @@ import { Input } from "@/components/ui/input"
 import { createClient } from "@/utils/supabase/client"
 
 const getDeviceIcon = (switchType) => {
+  const iconClass = "w-5 h-5 text-purple-600 dark:text-purple-200"
   switch (switchType) {
     case "light":
-      return <Lightbulb className="w-5 h-5" />
+      return <Lightbulb className={iconClass} />
     case "fan":
-      return <Fan className="w-5 h-5" />
+      return <Fan className={iconClass} />
     case "outlet":
-      return <Zap className="w-5 h-5" />
+      return <Zap className={iconClass} />
     case "heater":
-      return <Thermometer className="w-5 h-5" />
+      return <Thermometer className={iconClass} />
     case "pump":
-      return <Droplets className="w-5 h-5" />
+      return <Droplets className={iconClass} />
     default:
-      return <Power className="w-5 h-5" />
+      return <Power className={iconClass} />
   }
 }
 
@@ -246,8 +247,8 @@ export default function DeviceCard({ device, onUpdate }) {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center">
-                <Droplets className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-800 rounded-2xl flex items-center justify-center">
+                <Droplets className="w-6 h-6 text-blue-600 dark:text-blue-200" />
               </div>
               <div>
                 <CardTitle className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -273,6 +274,23 @@ export default function DeviceCard({ device, onUpdate }) {
             <span className="text-lg font-bold text-blue-600">{displayDevice.current_level || 0}ml</span>
           </div>
 
+          <div className="flex justify-between items-center p-3 bg-white/60 rounded-2xl">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">SMS Number</span>
+            <span className="text-sm font-mono text-blue-600">{displayDevice.phone_number || "Not set"}</span>
+          </div>
+
+          {displayDevice.phone_number && (
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">SMS Commands (when offline):</p>
+              <div className="space-y-1 text-xs font-mono">
+                <div>• DISPENSE 100 - Dispense 100ml</div>
+                <div>• DISPENSE 250 - Dispense 250ml</div>
+                <div>• DISPENSE 500 - Dispense 500ml</div>
+                <div>• STATUS - Get device status</div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-2">
             {[100, 250, 500].map((amount) => (
               <Button
@@ -297,8 +315,8 @@ export default function DeviceCard({ device, onUpdate }) {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center">
-                <Droplets className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-800 rounded-2xl flex items-center justify-center">
+                <Droplets className="w-6 h-6 text-green-600 dark:text-green-200" />
               </div>
               <div>
                 <CardTitle className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -328,6 +346,22 @@ export default function DeviceCard({ device, onUpdate }) {
           </div>
 
           <div className="flex justify-between items-center p-3 bg-white/60 rounded-2xl">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">SMS Number</span>
+            <span className="text-sm font-mono text-green-600">{displayDevice.phone_number || "Not set"}</span>
+          </div>
+
+          {displayDevice.phone_number && (
+            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-2xl">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">SMS Commands (when offline):</p>
+              <div className="space-y-1 text-xs font-mono">
+                <div>• START - Start the pump</div>
+                <div>• STOP - Stop the pump</div>
+                <div>• STATUS - Get pump status</div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center p-3 bg-white/60 rounded-2xl">
             <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Status</span>
             <Badge variant={displayDevice.state === "on" ? "default" : "secondary"} className="rounded-full">
               {displayDevice.state === "on" ? "Running" : "Stopped"}
@@ -345,8 +379,8 @@ export default function DeviceCard({ device, onUpdate }) {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center">
-                <Settings className="w-6 h-6 text-purple-600" />
+              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-800 rounded-2xl flex items-center justify-center">
+                <Settings className="w-6 h-6 text-purple-600 dark:text-purple-200" />
               </div>
               <div>
                 <CardTitle className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -404,7 +438,7 @@ export default function DeviceCard({ device, onUpdate }) {
                       className="flex items-center justify-between p-3 bg-white/60 dark:bg-gray-700/60 rounded-2xl transition-all duration-200 hover:bg-white/80 dark:hover:bg-gray-700/80"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-purple-100 rounded-xl flex items-center justify-center">
+                        <div className="w-8 h-8 bg-purple-100 dark:bg-purple-800 rounded-xl flex items-center justify-center">
                           {getDeviceIcon(channel.gui_switch_type)}
                         </div>
                         <div>
@@ -434,6 +468,25 @@ export default function DeviceCard({ device, onUpdate }) {
                       </div>
                     </div>
                   ))}
+              </div>
+            </div>
+          )}
+
+          {displayDevice.phone_number && (
+            <div className="space-y-3">
+              <div className="flex justify-between items-center p-3 bg-white/60 dark:bg-gray-700/60 rounded-2xl">
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">SMS Number</span>
+                <span className="text-sm font-mono text-purple-600">{displayDevice.phone_number}</span>
+              </div>
+
+              <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-2xl">
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">SMS Commands (when offline):</p>
+                <div className="space-y-1 text-xs font-mono">
+                  <div>• ON 1 - Turn on channel 1</div>
+                  <div>• OFF 1 - Turn off channel 1</div>
+                  <div>• STATUS - Get all channel status</div>
+                  <div>• HELP - Show all commands</div>
+                </div>
               </div>
             </div>
           )}

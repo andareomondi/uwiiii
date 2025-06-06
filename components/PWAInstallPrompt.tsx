@@ -22,18 +22,18 @@ export function PWAInstallPrompt() {
   }
 
   return (
-    <Card className="fixed bottom-4 right-4 w-80 z-50 shadow-lg border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50">
+    <Card className="fixed bottom-4 right-4 w-80 z-50 shadow-xl border-2 border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-800 backdrop-blur-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Smartphone className="w-5 h-5 text-blue-600" />
-            <CardTitle className="text-sm">Install VendorFlow</CardTitle>
+            <CardTitle className="text-sm text-gray-900 dark:text-white">Install VendorFlow</CardTitle>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setDismissed(true)} className="h-6 w-6 p-0">
             <X className="w-4 h-4" />
           </Button>
         </div>
-        <CardDescription className="text-xs">
+        <CardDescription className="text-xs text-gray-600 dark:text-gray-400">
           Install our app for a better experience with offline support and notifications
         </CardDescription>
       </CardHeader>

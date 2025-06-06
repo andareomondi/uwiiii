@@ -8,10 +8,13 @@ import { createClient } from "@/utils/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import EnvWarning from "@/components/EnvWarning"
+import { ToastTest } from "@/components/ToastTest"
 
 export default function DashboardPage() {
   const [data, setData] = useState({ shops: [], devices: [], user: null })
   const [loading, setLoading] = useState(true)
+  const [envError, setEnvError] = useState(false)
   const supabase = createClient()
 
   const fetchDashboardData = async () => {
@@ -99,6 +102,7 @@ export default function DashboardPage() {
       </ProtectedRoute>
     )
   }
+
 
   if (!data.user) {
     return (
@@ -219,7 +223,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
-
           {devices && devices.length > 0 ? (
             <div className="mb-8">
               <div className="flex justify-between items-center mb-4">

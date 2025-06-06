@@ -12,6 +12,13 @@ export default function ProtectedRoute({ children }) {
 
   useEffect(() => {
     const getUser = async () => {
+      // Check if Supabase environment variables are available
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        console.error("Supabase environment variables are missing")
+        setLoading(false)
+        return
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser()

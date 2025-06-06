@@ -166,6 +166,10 @@ export default function MarketplacePage() {
                         <span className="font-mono">{device.device_id}</span>
                       </div>
                       <div className="flex justify-between text-sm">
+                        <span className="text-gray-700 dark:text-gray-300">SMS Number:</span>
+                        <span className="font-mono">{device.phone_number || "Not assigned"}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
                         <span className="text-gray-700 dark:text-gray-300">Status:</span>
                         <Badge variant="outline" className="text-green-600">
                           Available

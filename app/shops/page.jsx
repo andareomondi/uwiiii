@@ -190,10 +190,11 @@ export default function ShopsPage() {
                       <button
                         key={shop.id}
                         onClick={() => setSelectedShop(shop)}
-                        className={`w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${selectedShop?.id === shop.id
+                        className={`w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+                          selectedShop?.id === shop.id
                             ? "bg-blue-50 dark:bg-blue-900/20 border-r-2 border-blue-500"
                             : ""
-                          }`}
+                        }`}
                       >
                         <div className="font-medium">{shop.name}</div>
                         <div className="text-sm text-gray-600 flex items-center gap-1">
@@ -261,9 +262,9 @@ export default function ShopsPage() {
                           <h4 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
                             No Vending Machines
                           </h4>
-                          <a href="/marketplace" className="text-gray-600 dark:text-gray-400 mb-4">
+                          <p className="text-gray-600 dark:text-gray-400 mb-4">
                             Add vending machines to this shop from the marketplace
-                          </a>
+                          </p>
                           <Button>Browse Marketplace</Button>
                         </CardContent>
                       </Card>

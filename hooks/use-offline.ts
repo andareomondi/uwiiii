@@ -48,6 +48,27 @@ export function useOffline() {
     const updatedActions = [...offlineActions, newAction]
     setOfflineActions(updatedActions)
     localStorage.setItem("vendorflow-offline-actions", JSON.stringify(updatedActions))
+
+    // Show SMS instructions for offline actions
+    if (typeof window !== "undefined") {
+      const smsInstructions = getSMSInstructions(action)
+      if (smsInstructions) {
+        // You could show a toast or modal with SMS instructions here
+        console.log("SMS Instructions:", smsInstructions)
+      }
+    }
+  }
+
+  const getSMSInstructions = (action: Omit<OfflineAction, "id" | "timestamp">) => {
+    switch (action.type) {
+      case "dispense":
+        return `Send SMS to ${action.data.phoneNumber}: DISPENSE ${action.data.amount}`
+      case "toggle":
+        const state = action.data.newState ? "ON" : "OFF"
+        return `Send SMS to ${action.data.phoneNumber}: ${state} ${action.data.channelNumber || ""}`
+      default:
+        return null
+    }
   }
 
   const clearOfflineActions = () => {
