@@ -17,8 +17,7 @@ export const metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "VendorFlow",
-  },
-    generator: 'v0.dev'
+  }
 }
 
 export default function RootLayout({ children }) {
