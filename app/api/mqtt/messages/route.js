@@ -1,30 +1,39 @@
-import { NextResponse } from "next/server"
-import { createClient } from "@/utils/supabase/server"
+import { NextResponse } from "next/server";
+import { createClient } from "@/utils/supabase/server";
 
 export async function GET() {
   try {
-    const supabase = createClient()
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
 
     // Fetch recent MQTT messages
     const { data: messages, error } = await supabase
       .from("mqtt_messages")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(50)
+      .limit(50);
 
-    if (error) throw error
+    if (error) throw error;
 
-    return NextResponse.json(messages || [])
+    return NextResponse.json(messages || []);
   } catch (error) {
-    console.error("Error fetching MQTT messages:", error)
-    return NextResponse.json({ error: "Failed to fetch MQTT messages" }, { status: 500 })
+    console.error("Error fetching MQTT messages:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch MQTT messages" },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request) {
   try {
-    const supabase = createClient()
-    const messageData = await request.json()
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
+    const messageData = await request.json();
 
     // Process incoming MQTT message
     const { data, error } = await supabase.from("mqtt_messages").insert([
@@ -34,54 +43,61 @@ export async function POST(request) {
         device_id: messageData.device_id,
         timestamp: messageData.timestamp || new Date().toISOString(),
       },
-    ])
+    ]);
 
-    if (error) throw error
+    if (error) throw error;
 
     // Process device state updates
     if (messageData.device_id && messageData.payload) {
-      await processDeviceStateUpdate(supabase, messageData)
+      await processDeviceStateUpdate(supabase, messageData);
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error processing MQTT message:", error)
-    return NextResponse.json({ error: "Failed to process MQTT message" }, { status: 500 })
+    console.error("Error processing MQTT message:", error);
+    return NextResponse.json(
+      { error: "Failed to process MQTT message" },
+      { status: 500 }
+    );
   }
 }
 
 async function processDeviceStateUpdate(supabase, messageData) {
   try {
-    const { device_id, payload } = messageData
+    const { device_id, payload } = messageData;
 
     // Check if device exists in our database
-    const { data: device } = await supabase.from("devices").select("*").eq("device_id", device_id).single()
+    const { data: device } = await supabase
+      .from("devices")
+      .select("*")
+      .eq("device_id", device_id)
+      .single();
 
     if (!device) {
-      console.log("Device not found in database:", device_id)
-      return
+      console.log("Device not found in database:", device_id);
+      return;
     }
 
     // Update device state based on payload
-    const updates = {}
+    const updates = {};
 
     if (payload.state) {
-      updates.state = payload.state
+      updates.state = payload.state;
     }
 
     if (payload.level !== undefined) {
-      updates.current_level = payload.level
+      updates.current_level = payload.level;
     }
 
     if (payload.balance !== undefined) {
-      updates.balance = payload.balance
+      updates.balance = payload.balance;
     }
 
     if (Object.keys(updates).length > 0) {
-      updates.last_seen = new Date().toISOString()
-      updates.status = "online"
+      updates.last_seen = new Date().toISOString();
+      updates.status = "online";
 
-      await supabase.from("devices").update(updates).eq("device_id", device_id)
+      await supabase.from("devices").update(updates).eq("device_id", device_id);
     }
 
     // Update relay channels if applicable
@@ -90,9 +106,9 @@ async function processDeviceStateUpdate(supabase, messageData) {
         .from("relay_channels")
         .update({ state: payload.channel_state })
         .eq("device_id", device.id)
-        .eq("channel_number", payload.channel_id)
+        .eq("channel_number", payload.channel_id);
     }
   } catch (error) {
-    console.error("Error updating device state:", error)
+    console.error("Error updating device state:", error);
   }
 }
