@@ -61,22 +61,23 @@ export async function POST(request) {
     );
   }
 }
-async function processDeviceStateUpdate(supabase, messageData) {
+export async function processDeviceStateUpdate(supabase, messageData) {
   try {
     const { device_id, payload } = messageData;
 
-    // Check if device exists
-    const { data: device } = await supabase
+    // Step 1: Look up device by external ID (device_id is a string)
+    const { data: device, error: deviceError } = await supabase
       .from("devices")
       .select("*")
       .eq("device_id", device_id)
       .single();
 
-    if (!device) {
-      console.log("Device not found:", device_id);
+    if (deviceError || !device) {
+      console.error("Device not found:", device_id);
       return;
     }
 
+    // Step 2: Update general device fields
     const updates = {};
 
     if (payload.state) updates.state = payload.state;
@@ -87,36 +88,39 @@ async function processDeviceStateUpdate(supabase, messageData) {
       updates.last_seen = new Date().toISOString();
       updates.status = "online";
 
-      await supabase.from("devices").update(updates).eq("device_id", device_id);
+      await supabase
+        .from("devices")
+        .update(updates)
+        .eq("device_id", device_id);
     }
 
-    console.log("i passed here");
+    // Step 3: Process both input and output channels
     for (const key in payload) {
-      if (key.startsWith("OUT_")) {
-        // Also i should point out that some of the json packates which are send by the device alternatively maycountain the IN_(number) for the imput channels so we should handle that use case.
-        const channel_number = parseInt(key.split("_")[1]);
-        const channel_state = payload[key]?.toUpperCase?.() ?? "OFF";
+      const match = key.match(/^(OUT|IN)_(\d+)$/);
+      if (match) {
+        const [_, channelType, channelNumStr] = match;
+        const channel_number = parseInt(channelNumStr);
+        const channel_state = payload[key]?.toLowerCase?.() ?? "off";
+        const channel_type = channelType === "OUT" ? "output" : "input";
 
-        console.log("Updating channel", {
+        console.log("Updating relay channel", {
+          channel_type,
           channel_number,
           channel_state,
-          device_id: device.device_id,
+          device_uuid: device.id,
         });
 
         const { data, error } = await supabase
           .from("relay_channels")
           .update({ state: channel_state })
-          /* 
-          this is where the issue is arising. In the sense that it's quering the device id of the relay device which in the supabase is a uuid key. SO there is another issue where we should query it based on the device_id of the parent relay device whose uuid is the device id column in the supabase relay_channels table
-          Confusing am aware. But this is coding summanrized in a nutshell. Anyway am happy we are making progress.
-          */
-          .eq("device_id", device.device_id)
-          .eq("channel_number", channel_number);
+          .eq("device_id", device.id)
+          .eq("channel_number", channel_number)
+          .eq("channel_type", channel_type);
 
         if (error) {
-          console.error("Relay update error:", error);
+          console.error(`Relay ${channel_type} update error:`, error);
         } else if (!data || data.length === 0) {
-          console.warn("No matching relay channel found");
+          console.warn(`No matching ${channel_type} channel found for ${channelType}_${channel_number}`);
         }
       }
     }
@@ -124,3 +128,6 @@ async function processDeviceStateUpdate(supabase, messageData) {
     console.error("Error updating device state:", error);
   }
 }
+
+
+
