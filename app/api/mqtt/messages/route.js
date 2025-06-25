@@ -35,7 +35,7 @@ export async function POST(request) {
     );
     const messageData = await request.json();
 
-    // Process incoming MQTT message
+    // await the json packates then add them to the database
     const { data, error } = await supabase.from("mqtt_messages").insert([
       {
         topic: messageData.topic,
@@ -86,21 +86,37 @@ async function processDeviceStateUpdate(supabase, messageData) {
     }
 
     if (payload.level !== undefined) {
+      //this balance is for vending machines.
       updates.current_level = payload.level;
     }
 
     if (payload.balance !== undefined) {
+      //this balance is for water pump
       updates.balance = payload.balance;
     }
 
     if (Object.keys(updates).length > 0) {
+      // checking if the array of updates is greater than zero if tru then toggle the status of the device to be online and last seen
       updates.last_seen = new Date().toISOString();
       updates.status = "online";
 
       await supabase.from("devices").update(updates).eq("device_id", device_id);
     }
 
-    // Update relay channels if applicable
+    /*  the script below is wrong since it chaking in the payload if there is a json object by the name channel_id which will never be there. The expected json packate is as shown
+    {
+      "device_id": "fss f asf",
+      "OUT_4": "ON",
+      "OUT_5": "OFF"
+    }
+      or this 
+      {
+        "type": "toggle",
+        "content": f"{channel.channel_type}_{channel.channel_number}",
+      }
+  . I shuold destructure it to fit the use case.
+  Then update the database with the correct state
+  */
     if (payload.channel_id && payload.channel_state) {
       await supabase
         .from("relay_channels")
