@@ -61,12 +61,11 @@ export async function POST(request) {
     );
   }
 }
-
 async function processDeviceStateUpdate(supabase, messageData) {
   try {
     const { device_id, payload } = messageData;
 
-    // Check if device exists in our database
+    // Check if device exists
     const { data: device } = await supabase
       .from("devices")
       .select("*")
@@ -74,55 +73,52 @@ async function processDeviceStateUpdate(supabase, messageData) {
       .single();
 
     if (!device) {
-      console.log("Device not found in database:", device_id);
+      console.log("Device not found:", device_id);
       return;
     }
 
-    // Update device state based on payload
     const updates = {};
 
-    if (payload.state) {
-      updates.state = payload.state;
-    }
-
-    if (payload.level !== undefined) {
-      //this balance is for vending machines.
-      updates.current_level = payload.level;
-    }
-
-    if (payload.balance !== undefined) {
-      //this balance is for water pump
-      updates.balance = payload.balance;
-    }
+    if (payload.state) updates.state = payload.state;
+    if (payload.level !== undefined) updates.current_level = payload.level;
+    if (payload.balance !== undefined) updates.balance = payload.balance;
 
     if (Object.keys(updates).length > 0) {
-      // checking if the array of updates is greater than zero if tru then toggle the status of the device to be online and last seen
       updates.last_seen = new Date().toISOString();
       updates.status = "online";
 
       await supabase.from("devices").update(updates).eq("device_id", device_id);
     }
 
-    /*  the script below is wrong since it chaking in the payload if there is a json object by the name channel_id which will never be there. The expected json packate is as shown
-    {
-      "device_id": "fss f asf",
-      "OUT_4": "ON",
-      "OUT_5": "OFF"
-    }
-      or this 
-      {
-        "type": "toggle",
-        "content": f"{channel.channel_type}_{channel.channel_number}",
+    console.log("i passed here");
+    for (const key in payload) {
+      if (key.startsWith("OUT_")) {
+        // Also i should point out that some of the json packates which are send by the device alternatively maycountain the IN_(number) for the imput channels so we should handle that use case.
+        const channel_number = parseInt(key.split("_")[1]);
+        const channel_state = payload[key]?.toUpperCase?.() ?? "OFF";
+
+        console.log("Updating channel", {
+          channel_number,
+          channel_state,
+          device_id: device.device_id,
+        });
+
+        const { data, error } = await supabase
+          .from("relay_channels")
+          .update({ state: channel_state })
+          /* 
+          this is where the issue is arising. In the sense that it's quering the device id of the relay device which in the supabase is a uuid key. SO there is another issue where we should query it based on the device_id of the parent relay device whose uuid is the device id column in the supabase relay_channels table
+          Confusing am aware. But this is coding summanrized in a nutshell. Anyway am happy we are making progress.
+          */
+          .eq("device_id", device.device_id)
+          .eq("channel_number", channel_number);
+
+        if (error) {
+          console.error("Relay update error:", error);
+        } else if (!data || data.length === 0) {
+          console.warn("No matching relay channel found");
+        }
       }
-  . I shuold destructure it to fit the use case.
-  Then update the database with the correct state
-  */
-    if (payload.channel_id && payload.channel_state) {
-      await supabase
-        .from("relay_channels")
-        .update({ state: payload.channel_state })
-        .eq("device_id", device.id)
-        .eq("channel_number", payload.channel_id);
     }
   } catch (error) {
     console.error("Error updating device state:", error);
