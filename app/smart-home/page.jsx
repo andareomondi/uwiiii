@@ -1,47 +1,49 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import ProtectedRoute from "@/components/ProtectedRoute"
-import Navigation from "@/components/Navigation"
-import DeviceCard from "@/components/DeviceCard"
-import { createClient } from "@/utils/supabase/client"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { useState, useEffect } from "react";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import Navigation from "@/components/Navigation";
+import DeviceCard from "@/components/DeviceCard";
+import { createClient } from "@/utils/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 export default function SmartHomePage() {
-  const [devices, setDevices] = useState([])
-  const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  const [devices, setDevices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
   useEffect(() => {
-    fetchDevices()
-  }, [])
+    fetchDevices();
+  }, []);
 
   const fetchDevices = async () => {
     try {
       const {
         data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
       const { data } = await supabase
         .from("devices")
-        .select(`
+        .select(
+          `
           *,
           relay_channels (*)
-        `)
+        `
+        )
         .eq("owner", user.id)
         .in("device_type", ["relay_device", "water_pump"])
-        .eq("is_active", true)
+        .eq("is_active", true);
 
-      setDevices(data || [])
+      setDevices(data || []);
     } catch (error) {
-      console.error("Error fetching devices:", error)
+      console.error("Error fetching devices:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -53,7 +55,7 @@ export default function SmartHomePage() {
           </div>
         </div>
       </ProtectedRoute>
-    )
+    );
   }
 
   return (
@@ -64,8 +66,12 @@ export default function SmartHomePage() {
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Smart Home</h1>
-              <p className="text-gray-600 dark:text-gray-400">Control your home devices</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                Smart Home
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                Control your home devices
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-2xl">❄️</span>
@@ -74,7 +80,9 @@ export default function SmartHomePage() {
           </div>
           {/* Device Count */}
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{devices.length} devices</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              {devices.length} devices
+            </h2>
             <Button size="sm" className="flex items-center gap-2">
               <Plus size={16} />
               Add Device
@@ -84,7 +92,11 @@ export default function SmartHomePage() {
           {/* Devices Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {devices.map((device) => (
-              <DeviceCard key={device.id} device={device} onUpdate={fetchDevices} />
+              <DeviceCard
+                key={device.id}
+                device={device}
+                onUpdate={fetchDevices}
+              />
             ))}
           </div>
 
@@ -92,7 +104,9 @@ export default function SmartHomePage() {
             <Card className="text-center py-12 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm border-0 shadow-lg">
               <CardContent>
                 <div className="text-6xl mb-4">🏠</div>
-                <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">No Smart Home Devices</h3>
+                <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
+                  No Smart Home Devices
+                </h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-4">
                   Add relay devices and water pumps to control your home
                 </p>
@@ -103,5 +117,5 @@ export default function SmartHomePage() {
         </div>
       </div>
     </ProtectedRoute>
-  )
+  );
 }

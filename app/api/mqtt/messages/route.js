@@ -76,7 +76,14 @@ export async function processDeviceStateUpdate(supabase, messageData) {
       console.error("Device not found:", device_id);
       return;
     }
-
+    await supabase
+      .from("devices")
+      .update({
+        last_seen: new Date().toISOString(),
+        status: "online",
+      })
+      .eq("device_id", device_id);
+      
     // Step 2: Update general device fields
     const updates = {};
 
@@ -88,10 +95,7 @@ export async function processDeviceStateUpdate(supabase, messageData) {
       updates.last_seen = new Date().toISOString();
       updates.status = "online";
 
-      await supabase
-        .from("devices")
-        .update(updates)
-        .eq("device_id", device_id);
+      await supabase.from("devices").update(updates).eq("device_id", device_id);
     }
 
     // Step 3: Process both input and output channels
@@ -120,7 +124,9 @@ export async function processDeviceStateUpdate(supabase, messageData) {
         if (error) {
           console.error(`Relay ${channel_type} update error:`, error);
         } else if (!data || data.length === 0) {
-          console.warn(`No matching ${channel_type} channel found for ${channelType}_${channel_number}`);
+          console.warn(
+            `No matching ${channel_type} channel found for ${channelType}_${channel_number}`
+          );
         }
       }
     }
@@ -128,6 +134,3 @@ export async function processDeviceStateUpdate(supabase, messageData) {
     console.error("Error updating device state:", error);
   }
 }
-
-
-
