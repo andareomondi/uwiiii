@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -83,23 +83,135 @@ export default function DeviceCard({ device, onUpdate }) {
   const [editingChannel, setEditingChannel] = useState(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [localDevice, setLocalDevice] = useState(device);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+
+  // Memoize the supabase client to prevent recreating on every render
+  const supabase = useMemo(() => createClient(), []);
+
+  // Update local device when prop changes
+  useEffect(() => {
+    setLocalDevice(device);
+  }, [device]);
+
+  useEffect(() => {
+    // Bail early if we don't have required IDs
+    if (!device?.id) {
+      console.warn("🚫 Missing device id for subscription.");
+      return;
+    }
+
+    console.log("🔄 Setting up real-time subscription for device:", device.id);
+
+    const channel = supabase
+      .channel(`device_updates_${device.id}_${Date.now()}`) // Add timestamp to make channel unique
+      .on(
+        "postgres_changes",
+        {
+          event: "*", // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: "public",
+          table: "devices",
+          filter: `id=eq.${device.id}`, // Filter by device.id, not device_id
+        },
+        (payload) => {
+          console.log("✅ Realtime device update:", payload);
+
+          if (
+            payload.eventType === "UPDATE" ||
+            payload.eventType === "INSERT"
+          ) {
+            setLocalDevice((prev) => ({
+              ...prev,
+              ...payload.new,
+            }));
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "relay_channels",
+          filter: `device_id=eq.${device.id}`,
+        },
+        (payload) => {
+          console.log("✅ Realtime channel update:", payload);
+
+          if (
+            payload.eventType === "UPDATE" ||
+            payload.eventType === "INSERT"
+          ) {
+            setLocalDevice((prev) => ({
+              ...prev,
+              relay_channels:
+                prev.relay_channels?.map((channel) =>
+                  channel.id === payload.new.id
+                    ? { ...channel, ...payload.new }
+                    : channel
+                ) || [],
+            }));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log("📡 Subscription status:", status);
+        if (status === "SUBSCRIBED") {
+          console.log("✅ Successfully subscribed to real-time updates");
+        } else if (status === "CHANNEL_ERROR") {
+          console.error("❌ Real-time subscription error");
+        }
+      });
+
+    return () => {
+      console.log("🧹 Cleaning up subscription for device:", device.id);
+      supabase.removeChannel(channel);
+    };
+  }, [device.id, supabase]);
+
+  // Auto-refresh every 45 seconds as fallback
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      console.log("🔄 Auto-refreshing device data...");
+      setLastRefresh(new Date());
+
+      if (onUpdate && typeof onUpdate === "function") {
+        try {
+          onUpdate();
+        } catch (err) {
+          console.error("❌ Failed to auto-refresh:", err);
+        }
+      }
+    }, 45000); // 45 seconds
+
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, [onUpdate]);
 
   const handleToggle = async (channelId, newState) => {
     setIsLoading(true);
 
-    // Optimistic update - update UI immediately
-    setLocalDevice((prev) => ({
-      ...prev,
-      relay_channels:
-        prev.relay_channels?.map((channel) =>
-          channel.id === channelId
-            ? { ...channel, state: newState ? "on" : "off" }
-            : channel
-        ) || [],
-    }));
-
     try {
       const channel = device.relay_channels?.find((ch) => ch.id === channelId);
+      if (!channel) {
+        throw new Error("Channel not found");
+      }
+
+      // 1. Update database first
+      const { error: dbError } = await supabase
+        .from("relay_channels")
+        .update({
+          state: newState ? "on" : "off",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", channelId);
+
+      if (dbError) {
+        console.error("Database update error:", dbError);
+        throw dbError;
+      }
+
+      // 2. Then publish MQTT message
       const message = {
         type: "toggle",
         content: `${channel.channel_type.toUpperCase()}_${
@@ -114,26 +226,16 @@ export default function DeviceCard({ device, onUpdate }) {
         description: `Device ${
           newState ? "turned on" : "turned off"
         } successfully`,
-        variant: "success",
       });
 
-      // Call onUpdate but don't wait for it to prevent page reload
-      if (onUpdate) {
-        onUpdate();
+      // 3. Reload to reflect changes
+      if (onUpdate && typeof onUpdate === "function") {
+        setTimeout(() => {
+          onUpdate();
+        }, 500); // Small delay to ensure database is updated
       }
     } catch (error) {
       console.error("Error controlling device:", error);
-
-      // Revert optimistic update on error
-      setLocalDevice((prev) => ({
-        ...prev,
-        relay_channels:
-          prev.relay_channels?.map((channel) =>
-            channel.id === channelId
-              ? { ...channel, state: newState ? "off" : "on" }
-              : channel
-          ) || [],
-      }));
 
       toast({
         title: "Error",
@@ -148,11 +250,27 @@ export default function DeviceCard({ device, onUpdate }) {
   const handleVendingMachineDispense = async (amount) => {
     setIsLoading(true);
     try {
+      // 1. Update database first
+      const newLevel = Math.max(0, (device.current_level || 0) - amount);
+
+      const { error: dbError } = await supabase
+        .from("devices")
+        .update({
+          current_level: newLevel,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", device.id);
+
+      if (dbError) {
+        console.error("Database update error:", dbError);
+        throw dbError;
+      }
+
+      // 2. Then publish MQTT message (without timestamp)
       const message = {
         device_id: device.device_id,
         action: "dispense",
         amount: amount,
-        timestamp: new Date().toISOString(),
       };
 
       await publishMQTTMessage(
@@ -163,23 +281,69 @@ export default function DeviceCard({ device, onUpdate }) {
       toast({
         title: "Success",
         description: `Dispensed ${amount}ml successfully`,
-        variant: "success",
       });
 
-      // Optimistic update for liquid level
-      setLocalDevice((prev) => ({
-        ...prev,
-        current_level: Math.max(0, (prev.current_level || 0) - amount),
-      }));
-
-      if (onUpdate) {
-        onUpdate();
+      // 3. Reload to reflect changes
+      if (onUpdate && typeof onUpdate === "function") {
+        setTimeout(() => {
+          onUpdate();
+        }, 500);
       }
     } catch (error) {
       console.error("Error dispensing:", error);
       toast({
         title: "Error",
         description: "Failed to dispense. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleWaterPumpToggle = async (newState) => {
+    setIsLoading(true);
+
+    try {
+      // 1. Update database first
+      const { error: dbError } = await supabase
+        .from("devices")
+        .update({
+          state: newState ? "on" : "off",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", device.id);
+
+      if (dbError) {
+        console.error("Database update error:", dbError);
+        throw dbError;
+      }
+
+      // 2. Then publish MQTT message (without timestamp)
+      const message = {
+        type: "pump_control",
+        action: newState ? "start" : "stop",
+      };
+
+      await publishMQTTMessage(`${device.device_id}`, message);
+
+      toast({
+        title: "Success",
+        description: `Pump ${newState ? "started" : "stopped"} successfully`,
+      });
+
+      // 3. Reload to reflect changes
+      if (onUpdate && typeof onUpdate === "function") {
+        setTimeout(() => {
+          onUpdate();
+        }, 500);
+      }
+    } catch (error) {
+      console.error("Error controlling pump:", error);
+
+      toast({
+        title: "Error",
+        description: "Failed to control pump. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -206,8 +370,6 @@ export default function DeviceCard({ device, onUpdate }) {
     setIsUpdating(true);
 
     try {
-      const supabase = createClient();
-
       const validSwitchType = VALID_SWITCH_TYPES.find(
         (type) => type.value === editingChannel.gui_switch_type
       );
@@ -223,18 +385,8 @@ export default function DeviceCard({ device, onUpdate }) {
       const updateData = {
         display_name: editingChannel.display_name.trim() || "Unnamed Channel",
         gui_switch_type: validSwitchType.value,
+        updated_at: new Date().toISOString(),
       };
-
-      // Optimistic update - update local state immediately
-      setLocalDevice((prev) => ({
-        ...prev,
-        relay_channels:
-          prev.relay_channels?.map((channel) =>
-            channel.id === editingChannel.id
-              ? { ...channel, ...updateData }
-              : channel
-          ) || [],
-      }));
 
       const { error } = await supabase
         .from("relay_channels")
@@ -249,21 +401,19 @@ export default function DeviceCard({ device, onUpdate }) {
       toast({
         title: "Success",
         description: "Channel updated successfully!",
-        variant: "success",
       });
 
       setIsEditDialogOpen(false);
       setEditingChannel(null);
 
-      // Refresh data in background without blocking UI
-      if (onUpdate) {
-        setTimeout(() => onUpdate(), 100);
+      // Reload to reflect changes
+      if (onUpdate && typeof onUpdate === "function") {
+        setTimeout(() => {
+          onUpdate();
+        }, 500);
       }
     } catch (error) {
       console.error("Error updating channel:", error);
-
-      // Revert optimistic update on error
-      setLocalDevice(device);
 
       toast({
         title: "Error",
@@ -311,6 +461,12 @@ export default function DeviceCard({ device, onUpdate }) {
                   className={`w-4 h-4 ${getStatusColor(displayDevice.status)}`}
                 />
               )}
+              <div className="text-xs text-gray-400 ml-2">
+                {lastRefresh.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -354,7 +510,9 @@ export default function DeviceCard({ device, onUpdate }) {
                 size="sm"
                 onClick={() => handleVendingMachineDispense(amount)}
                 disabled={isLoading}
-                className="bg-blue-500 hover:bg-blue-600 text-white rounded-xl h-10 transition-all duration-200"
+                className={`bg-blue-500 hover:bg-blue-600 text-white rounded-xl h-10 transition-all duration-200 ${
+                  isLoading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -397,12 +555,17 @@ export default function DeviceCard({ device, onUpdate }) {
                   className={`w-4 h-4 ${getStatusColor(displayDevice.status)}`}
                 />
               )}
+              <div className="text-xs text-gray-400">
+                {lastRefresh.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
               <Switch
                 checked={displayDevice.state === "on"}
-                onCheckedChange={(checked) =>
-                  handleToggle(displayDevice.id, checked)
-                }
+                onCheckedChange={(checked) => handleWaterPumpToggle(checked)}
                 disabled={isLoading}
+                className={isLoading ? "opacity-50" : ""}
               />
             </div>
           </div>
@@ -484,6 +647,12 @@ export default function DeviceCard({ device, onUpdate }) {
                   className={`w-4 h-4 ${getStatusColor(displayDevice.status)}`}
                 />
               )}
+              <div className="text-xs text-gray-400 ml-2">
+                {lastRefresh.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -569,6 +738,7 @@ export default function DeviceCard({ device, onUpdate }) {
                             handleToggle(channel.id, checked)
                           }
                           disabled={isLoading}
+                          className={isLoading ? "opacity-50" : ""}
                         />
                       </div>
                     </div>
@@ -692,3 +862,5 @@ export default function DeviceCard({ device, onUpdate }) {
     </>
   );
 }
+// This code defines a DeviceCard component that displays device information and allows interaction with devices.
+// It supports different device types like vending machines, water pumps, and relay controllers.
