@@ -763,10 +763,8 @@ export default function DeviceCard({ device, onUpdate }) {
                   SMS Commands (when offline):
                 </p>
                 <div className="space-y-1 text-xs font-mono">
-                  <div>• ON 1 - Turn on channel 1</div>
-                  <div>• OFF 1 - Turn off channel 1</div>
-                  <div>• STATUS - Get all channel status</div>
-                  <div>• HELP - Show all commands</div>
+                  <div>• ON_1 - Turn on channel 1</div>
+                  <div>• OFF_1 - Turn off channel 1</div>
                 </div>
               </div>
             </div>
