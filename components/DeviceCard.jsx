@@ -214,9 +214,7 @@ export default function DeviceCard({ device, onUpdate }) {
       // 2. Then publish MQTT message
       const message = {
         type: "toggle",
-        content: `${channel.channel_type.toUpperCase()}_${
-          channel.channel_number
-        }`,
+        content: `OUT_${channel.channel_number}`,
       };
 
       await publishMQTTMessage(`${device.device_id}`, message);

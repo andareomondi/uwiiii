@@ -83,19 +83,40 @@ export async function processDeviceStateUpdate(supabase, messageData) {
         status: "online",
       })
       .eq("device_id", device_id);
-      
+
     // Step 2: Update general device fields
-    const updates = {};
+    const updates = {
+      last_seen: new Date().toISOString(),
+      status: "online",
+    };
 
-    if (payload.state) updates.state = payload.state;
-    if (payload.level !== undefined) updates.current_level = payload.level;
-    if (payload.balance !== undefined) updates.balance = payload.balance;
+    if (device.device_type === "water_pump") {
+      // Handle balance update
+      if (payload.balance !== undefined) {
+        const balanceValue = Number.parseFloat(payload.balance);
+        if (!isNaN(balanceValue)) {
+          updates.balance = balanceValue;
+          console.log("Updated water pump balance:", balanceValue);
+        }
+      }
 
-    if (Object.keys(updates).length > 0) {
-      updates.last_seen = new Date().toISOString();
-      updates.status = "online";
+      // Handle valve status (open/closed -> on/off)
+      if (payload.valve_status) {
+        const valveState = payload.valve_status.toLowerCase();
+        updates.state = valveState === "open" ? "on" : "off";
+        console.log("Updated water pump valve state:", updates.state);
+      }
+    }
 
-      await supabase.from("devices").update(updates).eq("device_id", device_id);
+    // Step 3: Update device with consolidated updates (only one update call)
+    console.log("Updating device with:", updates);
+    const { error: updateError } = await supabase
+      .from("devices")
+      .update(updates)
+      .eq("device_id", device_id);
+
+    if (updateError) {
+      console.error("Device update error:", updateError);
     }
 
     // Step 3: Process both input and output channels
