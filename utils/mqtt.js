@@ -1,7 +1,7 @@
 import mqtt from "mqtt";
 
 let mqttClient = null;
-const brokerUrl = "mqtt://localhost";
+const brokerUrl = process.env.NEXT_PUBLIC_MQTT_BROKER;
 if (!mqttClient) {
   try {
     mqttClient = mqtt.connect(brokerUrl, {
