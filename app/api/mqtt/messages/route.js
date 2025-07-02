@@ -34,13 +34,21 @@ export async function POST(request) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
     const messageData = await request.json();
+    let extractedDeviceId = messageData.device_id;
+
+    // Try to extract from topic if not explicitly given
+    if (!extractedDeviceId && messageData.topic) {
+      const topicParts = messageData.topic.split("/");
+      extractedDeviceId = topicParts.length >= 2 ? topicParts[1] : null;
+      console.log("Extracted device_id from topic:", extractedDeviceId);
+    }
 
     // await the json packates then add them to the database
     const { data, error } = await supabase.from("mqtt_messages").insert([
       {
         topic: messageData.topic,
         payload: messageData.payload,
-        device_id: messageData.device_id,
+        device_id: extractedDeviceId,
         timestamp: messageData.timestamp || new Date().toISOString(),
       },
     ]);
@@ -48,8 +56,11 @@ export async function POST(request) {
     if (error) throw error;
 
     // Process device state updates
-    if (messageData.device_id && messageData.payload) {
-      await processDeviceStateUpdate(supabase, messageData);
+    if (extractedDeviceId && messageData.payload) {
+      await processDeviceStateUpdate(supabase, {
+        ...messageData,
+        device_id: extractedDeviceId, // override or add it
+      });
     }
 
     return NextResponse.json({ success: true });
@@ -63,8 +74,10 @@ export async function POST(request) {
 }
 export async function processDeviceStateUpdate(supabase, messageData) {
   try {
-    const { device_id, payload } = messageData;
+    console.log("test 1");
 
+    const { device_id, payload } = messageData;
+    console.log("test 2", device_id, payload);
     // Step 1: Look up device by external ID (device_id is a string)
     const { data: device, error: deviceError } = await supabase
       .from("devices")
@@ -105,6 +118,56 @@ export async function processDeviceStateUpdate(supabase, messageData) {
         const valveState = payload.valve_status.toLowerCase();
         updates.state = valveState === "open" ? "on" : "off";
         console.log("Updated water pump valve state:", updates.state);
+      }
+    }
+    if (device.device_type === "vending_machine") {
+      console.log("we are here");
+      // Parse values from payload safely
+      const amount = parseFloat(payload.amount);
+      const volume = parseFloat(payload.volume);
+      const total_amount = parseFloat(payload.total_amount);
+      const total_volume = parseFloat(payload.total_volume);
+      const stock = parseFloat(payload.stock);
+
+      // 1. Insert transaction log
+      if (!isNaN(amount) && !isNaN(volume)) {
+        const { error: insertError } = await supabase
+          .from("vending_logs")
+          .insert([
+            {
+              device_id: device.id,
+              amount,
+              volume,
+            },
+          ]);
+
+        if (insertError) {
+          console.error("Failed to insert vending log:", insertError);
+        } else {
+          console.log("Inserted vending log:", { amount, volume });
+        }
+      }
+
+      // 2. Update device with new totals and stock
+      const vendingUpdates = {};
+      if (!isNaN(total_amount)) vendingUpdates.total_amount = total_amount;
+      if (!isNaN(total_volume)) vendingUpdates.total_volume = total_volume;
+      if (!isNaN(stock)) vendingUpdates.stock = stock;
+
+      if (Object.keys(vendingUpdates).length > 0) {
+        const { error: vendingUpdateError } = await supabase
+          .from("devices")
+          .update(vendingUpdates)
+          .eq("id", device.id);
+
+        if (vendingUpdateError) {
+          console.error(
+            "Failed to update vending device stats:",
+            vendingUpdateError
+          );
+        } else {
+          console.log("Updated vending stats:", vendingUpdates);
+        }
       }
     }
 

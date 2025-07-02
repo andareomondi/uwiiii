@@ -468,7 +468,9 @@ export default function DeviceCard({ device, onUpdate }) {
             </div>
           </div>
         </CardHeader>
+
         <CardContent className="space-y-4">
+          {/* Current Level */}
           <div className="flex justify-between items-center p-3 bg-white/60 rounded-2xl">
             <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
               Current Level
@@ -478,6 +480,43 @@ export default function DeviceCard({ device, onUpdate }) {
             </span>
           </div>
 
+          {/* Remaining Stock */}
+          <div className="flex justify-between items-center p-3 bg-white/60 rounded-2xl">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+              Remaining Stock
+            </span>
+            <span className="text-lg font-bold text-blue-600">
+              {displayDevice.stock || 0}ml
+            </span>
+          </div>
+
+          {/* Totals */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-3 bg-white/60 rounded-2xl text-sm">
+              <p className="text-gray-500 dark:text-gray-400">Total Volume</p>
+              <p className="font-bold text-blue-600">
+                {displayDevice.total_volume || 0}L
+              </p>
+            </div>
+            <div className="p-3 bg-white/60 rounded-2xl text-sm">
+              <p className="text-gray-500 dark:text-gray-400">Total Amount</p>
+              <p className="font-bold text-blue-600">
+                KSh {displayDevice.total_amount || 0}
+              </p>
+            </div>
+          </div>
+
+          {/* Price */}
+          <div className="flex justify-between items-center p-3 bg-white/60 rounded-2xl">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+              Price
+            </span>
+            <span className="text-sm font-mono text-blue-600">
+              KSh {displayDevice.price || "N/A"}
+            </span>
+          </div>
+
+          {/* Phone Number */}
           <div className="flex justify-between items-center p-3 bg-white/60 rounded-2xl">
             <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
               SMS Number
@@ -487,6 +526,7 @@ export default function DeviceCard({ device, onUpdate }) {
             </span>
           </div>
 
+          {/* SMS Commands */}
           {displayDevice.phone_number && (
             <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
               <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
@@ -501,6 +541,7 @@ export default function DeviceCard({ device, onUpdate }) {
             </div>
           )}
 
+          {/* Dispense Buttons */}
           <div className="grid grid-cols-3 gap-2">
             {[100, 250, 500].map((amount) => (
               <Button
@@ -610,6 +651,13 @@ export default function DeviceCard({ device, onUpdate }) {
             >
               {displayDevice.state === "on" ? "Running" : "Stopped"}
             </Badge>
+          </div>
+          <br />
+          <div className="flex justify-between">
+            <span className="text-gray-600 dark:text-gray-400">Price:</span>
+            <span className="font-mono text-sm">
+              KSh: {device.price || "N/A"}
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -764,6 +812,13 @@ export default function DeviceCard({ device, onUpdate }) {
                   <div>• ON_1 - Turn on channel 1</div>
                   <div>• OFF_1 - Turn off channel 1</div>
                 </div>
+              </div>
+              <br />
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Price:</span>
+                <span className="font-mono text-sm">
+                  KSh: {device.price || "N/A"}
+                </span>
               </div>
             </div>
           )}

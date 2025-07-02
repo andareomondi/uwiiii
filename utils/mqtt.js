@@ -28,7 +28,7 @@ if (mqttClient) {
       const payload = JSON.parse(message.toString());
       console.log("Received MQTT message:", { topic, payload });
 
-      fetch("/api/mqtt/messages", {
+      fetch("http://localhost:3000/api/mqtt/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic, payload, device_id: payload.device_id }),
